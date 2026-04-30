@@ -2,42 +2,40 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Nexus Industrial - Login</title>
+    <title>Login - HMI Server</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background: #05070a; color: #ffffff; height: 100vh; display: flex; align-items: center; font-family: 'Inter', sans-serif; }
-        .login-box { background: #0f172a; border: 1px solid #1e293b; padding: 40px; border-radius: 12px; box-shadow: 0 0 40px rgba(0,0,0,0.5); }
-        .btn-nexus { background: #38bdf8; color: #000; fw: 700; border: none; }
-        .btn-nexus:hover { background: #0ea5e9; color: #fff; }
-        input { background: #05070a !important; border: 1px solid #334155 !important; color: #fff !important; }
-        label { color: #94a3b8; font-size: 0.9rem; }
+        body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #f8fafc; height: 100vh; display: flex; align-items: center; }
+        .login-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid #334155; border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); padding: 2.5rem; }
+        .form-control { background-color: #0f172a; border: 1px solid #475569; color: white; }
+        .form-control:focus { background-color: #0f172a; border-color: #38bdf8; box-shadow: 0 0 0 0.25rem rgba(56, 189, 248, 0.25); color: white; }
+        .btn-primary { background-color: #0284c7; border: none; } .btn-primary:hover { background-color: #0369a1; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-4 login-box text-center">
-                <h2 class="mb-4" style="letter-spacing: -1px;">NEXUS<span style="color:#38bdf8">.UI</span></h2>
-                <div class="text-start">
-                    <label>ID de Operador</label>
-                    <input type="text" id="user" class="form-control mb-3">
-                    <label>Chave de Acesso</label>
-                    <input type="password" id="pass" class="form-control mb-4">
-                    <button class="btn btn-nexus w-100 py-2" onclick="fazerLogin()">AUTENTICAR SISTEMA</button>
-                </div>
-            </div>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-4 login-card">
+            <h3 class="text-center mb-1" style="color: #38bdf8; font-weight: 700;">Nexus UI</h3>
+            <p class="text-center text-muted mb-4">Autenticação de Sistema</p>
+            <label class="form-label text-secondary">Usuário de Rede</label>
+            <input type="text" id="user" class="form-control mb-3" placeholder="Ex: operador1">
+            <label class="form-label text-secondary">Senha de Acesso</label>
+            <input type="password" id="pass" class="form-control mb-4" placeholder="••••••••">
+            <button class="btn btn-primary w-100 py-2 fw-bold" onclick="fazerLogin()">Iniciar Sessão</button>
+            <p id="msg-erro" class="text-danger mt-3 text-center fw-bold"></p>
         </div>
     </div>
-    <script>
-        async function fazerLogin() {
-            const res = await fetch('/login', {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({username: document.getElementById('user').value, password: document.getElementById('pass').value})
-            });
-            const data = await res.json();
-            if(res.ok) window.location.href = data.redirect;
-            else alert("Acesso negado.");
-        }
-    </script>
+</div>
+<script>
+    async function fazerLogin() {
+        const res = await fetch('/login', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: document.getElementById('user').value, password: document.getElementById('pass').value })
+        });
+        const data = await res.json();
+        if(res.ok) window.location.href = data.redirect; else document.getElementById('msg-erro').innerText = "Acesso Negado.";
+    }
+</script>
 </body>
 </html>
