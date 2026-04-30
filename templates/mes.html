@@ -2,89 +2,77 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>MES Production Intelligence</title>
+    <title>MES - Gestão de Chão de Fábrica</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background: #020617; color: #ffffff; font-family: 'Inter', sans-serif; }
-        .side-panel { background: #0f172a; border-right: 1px solid #1e293b; height: 100vh; padding: 20px; }
-        .main-content { padding: 30px; height: 100vh; overflow-y: auto; }
-        .kpi-card { background: #1e293b; border-radius: 12px; padding: 20px; border: 1px solid #334155; }
-        .machine-status { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 15px; margin-bottom: 10px; }
-        .oee-val { font-size: 3rem; font-weight: 900; color: #10b981; }
-        .progress { height: 8px; background: #334155; }
-        .progress-bar { background: #38bdf8; }
-        h6 { color: #94a3b8; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; }
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .navbar-custom { background: #0b1120; border-bottom: 1px solid #1e293b; }
+        .card-custom { background: #1e293b; border: 1px solid #334155; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); }
+        .metric { font-size: 2rem; font-weight: bold; }
+        .machine-box { padding: 15px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; text-align: center; }
+        .aviso-item { border-left: 4px solid #f59e0b; padding-left: 10px; margin-bottom: 10px; background: rgba(245, 158, 11, 0.1); padding: 8px; border-radius: 4px;}
     </style>
 </head>
 <body>
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-md-3 side-panel">
-                <h4 class="fw-bold mb-4">MES CENTRAL</h4>
-                <div id="alertas" class="mt-5">
-                    <h6>Notificações de Chão</h6>
+<nav class="navbar navbar-custom py-3 mb-4">
+    <div class="container-fluid px-4">
+        <span class="navbar-brand fw-bold" style="color: #f59e0b;">📊 MES | Controle de Manufatura</span>
+        <div><span class="badge bg-secondary me-3">Perfil: Supervisão</span><a href="/logout" class="btn btn-outline-danger btn-sm">Encerrar Sessão</a></div>
+    </div>
+</nav>
+
+<div class="container-fluid px-4">
+    <div class="row mb-4">
+        <div class="col-md-3"><div class="card card-custom p-3 text-center"><span class="text-muted small">ORDEM ATUAL</span><div id="os" class="metric text-info">--</div></div></div>
+        <div class="col-md-3"><div class="card card-custom p-3 text-center"><span class="text-muted small">PRODUTO</span><div id="prod" class="metric text-light fs-4 mt-2">--</div></div></div>
+        <div class="col-md-3"><div class="card card-custom p-3 text-center"><span class="text-muted small">PEÇAS (ATUAL / META)</span><div class="metric"><span id="pecas" class="text-success">--</span> <span class="fs-5 text-muted">/ <span id="meta">--</span></span></div></div></div>
+        <div class="col-md-3"><div class="card card-custom p-3 text-center border-bottom border-4 border-warning"><span class="text-muted small">OEE GLOBAL</span><div id="oee" class="metric text-warning">--%</div></div></div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card card-custom p-4 h-100">
+                <h5 class="text-secondary mb-4">Status do Parque Fabril (Linha 1)</h5>
+                <div class="row g-3" id="grid-maquinas">
                     </div>
             </div>
-            <div class="col-md-9 main-content">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h3>Dashboard de Performance</h3>
-                    <a href="/logout" class="btn btn-sm btn-outline-danger">Logoff</a>
-                </div>
-
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <div class="kpi-card text-center">
-                            <h6>Eficiência Global (OEE)</h6>
-                            <div class="oee-val" id="oee-g">--%</div>
-                        </div>
-                    </div>
-                    <div class="col-md-8">
-                        <div class="kpi-card">
-                            <div class="d-flex justify-content-between">
-                                <h6>Produção da Ordem #409</h6>
-                                <span id="prod-txt" class="fw-bold">-- / --</span>
-                            </div>
-                            <div class="progress mt-3">
-                                <div id="prod-bar" class="progress-bar" style="width: 0%"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <h5 class="mt-5 mb-3">Mapa de Ativos (Real-time)</h5>
-                <div class="row g-3" id="maq-grid">
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card card-custom p-4 h-100">
+                <h5 class="text-secondary mb-4">Mural de Avisos</h5>
+                <div id="lista-avisos">
                     </div>
             </div>
         </div>
     </div>
-    <script>
-        async function load() {
-            const res = await fetch('/api/mes_data');
-            const d = await res.json();
-            
-            document.getElementById('oee-g').innerText = d.oee.global + "%";
-            document.getElementById('prod-txt').innerText = `${d.producao.atual} / ${d.producao.meta}`;
-            document.getElementById('prod-bar').style.width = (d.producao.atual / d.producao.meta * 100) + "%";
+</div>
 
-            document.getElementById('maq-grid').innerHTML = d.maquinas.map(m => `
-                <div class="col-md-3">
-                    <div class="machine-status">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="fw-bold">${m.id}</span>
-                            <span class="badge ${m.status=='Ativa'?'bg-success':'bg-danger'}">${m.status}</span>
-                        </div>
-                        <div class="mt-3 small text-muted">Carga: ${m.load}%</div>
-                        <div class="progress mt-1" style="height:4px"><div class="progress-bar" style="width:${m.load}%"></div></div>
-                    </div>
+<script>
+    setInterval(async () => {
+        const res = await fetch('/api/mes');
+        const data = await res.json();
+        
+        document.getElementById('os').innerText = data.ordem_servico;
+        document.getElementById('prod').innerText = data.produto;
+        document.getElementById('pecas').innerText = data.pecas_produzidas;
+        document.getElementById('meta').innerText = data.meta;
+        document.getElementById('oee').innerText = data.oee + "%";
+
+        document.getElementById('grid-maquinas').innerHTML = data.maquinas.map(m => `
+            <div class="col-md-6">
+                <div class="machine-box border-${m.cor}">
+                    <h6 class="text-light">${m.nome}</h6>
+                    <span class="badge bg-${m.cor}">${m.status}</span>
                 </div>
-            `).join('');
+            </div>
+        `).join('');
 
-            document.getElementById('alertas').innerHTML = '<h6>Notificações</h6>' + d.alertas.map(a => `
-                <div class="alert alert-dark p-2" style="font-size:0.8rem; background:#1e293b; border:none; color:#fff">⚠️ ${a}</div>
-            `).join('');
-        }
-        setInterval(load, 3000);
-        load();
-    </script>
+        document.getElementById('lista-avisos').innerHTML = data.avisos.map(a => `
+            <div class="aviso-item text-light small">${a}</div>
+        `).join('');
+
+    }, 3000);
+</script>
 </body>
 </html>
