@@ -20,22 +20,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# --- ESTADO GLOBAL SIMULADO (Memória da Fábrica) ---
-estado_fabrica = {
-    "scada": {
-        "temp": 182.0,
-        "pressao": 5.0,
-        "vazao": 120.0,
-        "nivel": 75.0,
-        "limite_alarme": 185.0
-    },
-    "producao": {
-        "pecas_boas": 4200,
-        "refugo": 45,
-        "meta": 6000,
-        "inicio_turno": datetime.now()
-    }
-}
+# Estado Global Simulado
+limite_alarme = 185.0 
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -43,6 +29,14 @@ class User(db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.Text, nullable=False)
     role = db.Column(db.String(20), nullable=False)
+
+class AuditLog(db.Model):
+    __tablename__ = 'audit_logs'
+    id = db.Column(db.Integer, primary_key=True)
+    acao = db.Column(db.String(200), nullable=False)
+    usuario = db.Column(db.String(50), nullable=False)
+    ip_origem = db.Column(db.String(50))
+    data_hora = db.Column(db.DateTime, default=datetime.now)
 
 def requer_perfil(perfis_permitidos):
     def decorator(f):
@@ -54,7 +48,6 @@ def requer_perfil(perfis_permitidos):
         return decorated_function
     return decorator
 
-# --- ROTAS DE PÁGINA ---
 @app.route('/')
 def pagina_login():
     session.clear()
@@ -88,73 +81,57 @@ def logout():
     session.clear()
     return redirect('/')
 
-# --- APIs COM LÓGICA REALISTA ---
+# --- APIs DE DADOS REALISTAS ---
 
 @app.route('/api/scada_data')
 @requer_perfil(['Operador'])
 def scada_data():
-    # Simulação de Inércia Térmica (Variação de +- 0.4 graus por vez)
-    variacao = random.uniform(-0.4, 0.4)
-    estado_fabrica["scada"]["temp"] = round(estado_fabrica["scada"]["temp"] + variacao, 1)
-    
-    # Pressão deriva proporcionalmente à temperatura (Leis da Física)
-    estado_fabrica["scada"]["pressao"] = round(5.0 + (estado_fabrica["scada"]["temp"] - 180) * 0.05, 2)
-    
     return jsonify({
         "maquina_01": {
-            "temp": estado_fabrica["scada"]["temp"],
-            "pressao": estado_fabrica["scada"]["pressao"],
-            "vazao": round(random.uniform(118, 122), 1),
-            "nivel": round(estado_fabrica["scada"]["nivel"] + random.uniform(-0.1, 0.1), 1),
-            "alarme": estado_fabrica["scada"]["temp"] > estado_fabrica["scada"]["limite_alarme"]
+            "temp": round(random.uniform(175, 190), 1),
+            "pressao": round(random.uniform(4.8, 5.5), 2),
+            "vazao": round(random.uniform(110, 130), 1),
+            "nivel": round(random.uniform(70, 85), 1),
+            "status": "OPERANDO",
+            "alarme": True if limite_alarme < 185 else False # Simulação lógica
         },
-        "limite": estado_fabrica["scada"]["limite_alarme"]
+        "limite_config": limite_alarme
     })
 
 @app.route('/api/mes_data')
 @requer_perfil(['Supervisor'])
 def mes_data():
-    # Lógica de OEE Real
-    disp = 94.2 # % de tempo que a máquina ficou ligada
-    perf = round((estado_fabrica["producao"]["pecas_boas"] / 5000) * 100, 1)
-    qual = round((1 - (estado_fabrica["producao"]["refugo"] / estado_fabrica["producao"]["pecas_boas"])) * 100, 1)
-    oee_global = round((disp/100 * perf/100 * qual/100) * 100, 1)
-
     return jsonify({
-        "kpis": {"oee": oee_global, "disponibilidade": disp, "performance": perf, "qualidade": qual},
-        "producao": {"boas": estado_fabrica["producao"]["pecas_boas"], "meta": estado_fabrica["producao"]["meta"], "refugo": estado_fabrica["producao"]["refugo"]},
-        "status_maquinas": [
-            {"tag": "Torno-01", "status": "Operando", "cor": "success", "eficiencia": "92%"},
-            {"tag": "Fresa-02", "status": "Setup", "cor": "warning", "eficiencia": "45%"},
-            {"tag": "Robô-03", "status": "Operando", "cor": "success", "eficiencia": "98%"},
-            {"tag": "Prensa-04", "status": "Parada Crítica", "cor": "danger", "eficiencia": "0%"}
-        ]
+        "oee": {"global": 87.5, "disponibilidade": 92, "performance": 95, "qualidade": 99},
+        "producao": {"atual": random.randint(4500, 5000), "meta": 6000, "refugo": 12},
+        "maquinas": [
+            {"id": "CNC-01", "status": "Ativa", "load": 85, "temp": 45},
+            {"id": "ROB-02", "status": "Manutenção", "load": 0, "temp": 22},
+            {"id": "EST-03", "status": "Ativa", "load": 40, "temp": 38},
+            {"id": "INV-04", "status": "Alerta", "load": 98, "temp": 72}
+        ],
+        "alertas": ["Troca de ferramenta CNC-01 em 2h", "Nível baixo de fluido hidráulico EST-03"]
     })
 
 @app.route('/api/erp_data')
 @requer_perfil(['Engenharia'])
 def erp_data():
-    # Simulação de custo baseada na produção do MES
-    custo_total = estado_fabrica["producao"]["pecas_boas"] * 0.85 # R$ 0,85 por peça
-    faturamento = estado_fabrica["producao"]["pecas_boas"] * 2.50 # R$ 2,50 por peça
-
+    logs = AuditLog.query.order_by(AuditLog.id.desc()).limit(6).all()
     return jsonify({
-        "financeiro": {
-            "receita": f"R$ {faturamento:,.2f}",
-            "custo": f"R$ {custo_total:,.2f}",
-            "ebitda": f"R$ {(faturamento - custo_total):,.2f}"
-        },
+        "financeiro": {"receita": "R$ 452.000", "custo": "R$ 128.000", "margem": "72%"},
         "estoque": [
-            {"item": "Aço SAE 1020", "qtd": "14.5 Ton", "acao": "Estoque OK", "cor": "success"},
-            {"item": "Fluido de Corte", "qtd": "120 Litros", "acao": "Comprar Agora", "cor": "danger"},
-            {"item": "Insertos CNC", "qtd": "45 Unid.", "acao": "Atenção", "cor": "warning"}
-        ]
+            {"item": "Polímero PP", "qtd": "1.200kg", "critico": False},
+            {"item": "Pigmento Azul", "qtd": "50kg", "critico": True},
+            {"item": "Embalagens G", "qtd": "5.000un", "critico": False}
+        ],
+        "logs": [{"u": l.usuario, "a": l.acao, "d": l.data_hora.strftime('%H:%M')} for l in logs]
     })
 
 @app.route('/api/setpoint', methods=['POST'])
 def setpoint():
-    estado_fabrica["scada"]["limite_alarme"] = float(request.get_json().get('valor'))
-    return jsonify({"status": "updated"})
+    global limite_alarme
+    limite_alarme = float(request.get_json().get('valor'))
+    return jsonify({"s": "ok"})
 
 if __name__ == '__main__':
     with app.app_context(): db.create_all()
