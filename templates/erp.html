@@ -2,73 +2,69 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>ERP - Visão Corporativa</title>
+    <title>Nexus ERP | Corporate</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .navbar-custom { background: #0b1120; border-bottom: 1px solid #1e293b; }
-        .card-custom { background: #1e293b; border: 1px solid #334155; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); }
-        .table-dark-custom { background-color: transparent; color: #cbd5e1; }
-        .table-dark-custom th { color: #94a3b8; font-weight: 500; border-bottom: 1px solid #334155; }
-        .table-dark-custom td { border-bottom: 1px solid #334155; }
-        .kpi-value { font-size: 1.8rem; font-weight: bold; }
+        body { background: #0f172a; color: #ffffff; font-family: 'Inter', sans-serif; }
+        .nav-top { background: #1e293b; border-bottom: 1px solid #334155; padding: 15px 40px; }
+        .erp-card { background: #0f172a; border: 1px solid #334155; border-radius: 16px; padding: 30px; }
+        .money-val { font-size: 2rem; font-weight: 700; color: #ffffff; }
+        .table { color: #ffffff !important; }
+        .table th { color: #64748b; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; border-bottom: 1px solid #334155; }
+        .table td { border-bottom: 1px solid #1e293b; padding: 15px 0; }
     </style>
 </head>
 <body>
-<nav class="navbar navbar-custom py-3 mb-4">
-    <div class="container-fluid px-4">
-        <span class="navbar-brand fw-bold" style="color: #10b981;">🏢 ERP Corporativo & Auditoria</span>
-        <div><span class="badge bg-secondary me-3">Perfil: Engenharia/Diretoria</span><a href="/logout" class="btn btn-outline-danger btn-sm">Encerrar Sessão</a></div>
-    </div>
-</nav>
-
-<div class="container-fluid px-4">
-    <div class="row mb-4">
-        <div class="col-md-4"><div class="card card-custom p-4 border-start border-4 border-info"><span class="text-muted small">PREVISÃO DE FATURAMENTO</span><div id="fat" class="kpi-value text-info">--</div></div></div>
-        <div class="col-md-4"><div class="card card-custom p-4 border-start border-4 border-danger"><span class="text-muted small">CUSTO OPERACIONAL (ENERGIA)</span><div id="custo" class="kpi-value text-danger">--</div></div></div>
-        <div class="col-md-4"><div class="card card-custom p-4 border-start border-4 border-warning"><span class="text-muted small">DESPERDÍCIO ESTIMADO</span><div id="desp" class="kpi-value text-warning">--</div></div></div>
-    </div>
-
-    <div class="row">
-        <div class="col-md-5">
-            <div class="card card-custom p-4 h-100">
-                <h5 class="text-secondary mb-4">Inventário de Matéria-Prima</h5>
-                <table class="table table-dark-custom">
-                    <thead><tr><th>Item</th><th>Quantidade</th><th>Status</th></tr></thead>
-                    <tbody id="tabela-estoque"></tbody>
-                </table>
-            </div>
+    <div class="nav-top d-flex justify-content-between align-items-center">
+        <h5 class="m-0 fw-bold">NEXUS <span class="text-primary">ERP</span></h5>
+        <div class="d-flex gap-4">
+            <span class="text-secondary small">LOGGED AS: <strong>ENGINEERING_ADMIN</strong></span>
+            <a href="/logout" class="text-danger small fw-bold text-decoration-none">EXIT</a>
         </div>
-        
-        <div class="col-md-7">
-            <div class="card card-custom p-4 h-100">
-                <h5 class="text-secondary mb-4">Logs de Segurança e Auditoria de TI</h5>
-                <table class="table table-dark-custom table-sm" style="font-size: 0.85rem;">
-                    <thead><tr><th>Data/Hora</th><th>Usuário</th><th>Ação Registrada</th></tr></thead>
-                    <tbody id="tabela-logs"></tbody>
-                </table>
+    </div>
+
+    <div class="container mt-5">
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="erp-card border-start border-4 border-primary">
+                    <span class="text-secondary small fw-bold">FATURAMENTO BRUTO</span>
+                    <div class="money-val mb-4" id="v-rec">R$ 0,00</div>
+                    
+                    <span class="text-secondary small fw-bold">CUSTO OPERACIONAL</span>
+                    <div class="money-val text-danger" id="v-custo">R$ 0,00</div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="erp-card">
+                    <h6 class="fw-bold mb-4">GARGALOS DE SUPRIMENTOS & MATÉRIA-PRIMA</h6>
+                    <table class="table">
+                        <thead><tr><th>RECURSO</th><th>SALDO ATUAL</th><th>RECOMENDAÇÃO</th></tr></thead>
+                        <tbody id="v-estoque"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<script>
-    setInterval(async () => {
-        const res = await fetch('/api/erp');
-        const data = await res.json();
-        
-        document.getElementById('fat').innerText = data.kpi_financeiro.faturamento;
-        document.getElementById('custo').innerText = data.kpi_financeiro.custo_energia;
-        document.getElementById('desp').innerText = data.kpi_financeiro.desperdicio;
+    <script>
+        async function update() {
+            const res = await fetch('/api/erp_data');
+            const d = await res.json();
+            
+            document.getElementById('v-rec').innerText = d.financeiro.receita;
+            document.getElementById('v-custo').innerText = d.financeiro.custo;
 
-        document.getElementById('tabela-estoque').innerHTML = data.estoque.map(e => `
-            <tr><td>${e.item}</td><td>${e.qtd}</td><td><span class="badge ${e.status === 'OK' ? 'bg-success' : 'bg-danger'}">${e.status}</span></td></tr>
-        `).join('');
-
-        document.getElementById('tabela-logs').innerHTML = data.logs.map(l => `
-            <tr><td class="text-muted">${l.data}</td><td class="text-info">${l.usuario}</td><td>${l.acao}</td></tr>
-        `).join('');
-    }, 4000);
-</script>
+            document.getElementById('v-estoque').innerHTML = d.estoque.map(i => `
+                <tr>
+                    <td class="fw-bold text-white">${i.item}</td>
+                    <td>${i.qtd}</td>
+                    <td><span class="badge bg-${i.cor}">${i.acao}</span></td>
+                </tr>
+            `).join('');
+        }
+        setInterval(update, 5000);
+        update();
+    </script>
 </body>
 </html>
