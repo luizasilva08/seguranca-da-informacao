@@ -20,7 +20,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# Estado Global Simulado
 limite_alarme = 185.0 
 
 class User(db.Model):
@@ -43,11 +42,21 @@ def requer_perfil(perfis_permitidos):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if 'username' not in session: return redirect('/') 
-            if session.get('role') not in perfis_permitidos: return "Acesso Negado", 403
+            if session.get('role') not in perfis_permitidos:
+                registrar_log(f"Tentativa de acesso bloqueada à rota {request.path}")
+                return "Acesso Negado", 403
             return f(*args, **kwargs)
         return decorated_function
     return decorator
 
+def registrar_log(acao):
+    ip = request.remote_addr
+    usuario = session.get('username', 'Anônimo')
+    novo_log = AuditLog(acao=acao, usuario=usuario, ip_origem=ip)
+    db.session.add(novo_log)
+    db.session.commit()
+
+# --- ROTAS FRONTEND ---
 @app.route('/')
 def pagina_login():
     session.clear()
@@ -65,6 +74,7 @@ def pagina_mes(): return render_template('mes.html')
 @requer_perfil(['Engenharia'])
 def pagina_erp(): return render_template('erp.html')
 
+# --- APIS ---
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -72,67 +82,67 @@ def login():
     if user and check_password_hash(user.password_hash, data.get('password')):
         session['username'] = user.username
         session['role'] = user.role
+        registrar_log("Login realizado")
         destinos = {'Operador': '/scada', 'Supervisor': '/mes', 'Engenharia': '/erp'}
         return jsonify({"mensagem": "Sucesso", "redirect": destinos.get(user.role, '/')})
-    return jsonify({"erro": "Incorreto"}), 401
+    return jsonify({"erro": "Credenciais inválidas"}), 401
 
 @app.route('/logout')
 def logout():
+    registrar_log("Logout realizado")
     session.clear()
     return redirect('/')
 
-# --- APIs DE DADOS REALISTAS ---
-
-@app.route('/api/scada_data')
+@app.route('/api/monitoramento', methods=['GET'])
 @requer_perfil(['Operador'])
-def scada_data():
+def monitoramento():
+    temp_atual = round(random.uniform(178.0, 190.0), 1)
+    pressao = round(random.uniform(4.5, 5.2), 2)
+    vazao = round(random.uniform(115.0, 125.0), 1)
     return jsonify({
-        "maquina_01": {
-            "temp": round(random.uniform(175, 190), 1),
-            "pressao": round(random.uniform(4.8, 5.5), 2),
-            "vazao": round(random.uniform(110, 130), 1),
-            "nivel": round(random.uniform(70, 85), 1),
-            "status": "OPERANDO",
-            "alarme": True if limite_alarme < 185 else False # Simulação lógica
-        },
-        "limite_config": limite_alarme
-    })
-
-@app.route('/api/mes_data')
-@requer_perfil(['Supervisor'])
-def mes_data():
-    return jsonify({
-        "oee": {"global": 87.5, "disponibilidade": 92, "performance": 95, "qualidade": 99},
-        "producao": {"atual": random.randint(4500, 5000), "meta": 6000, "refugo": 12},
-        "maquinas": [
-            {"id": "CNC-01", "status": "Ativa", "load": 85, "temp": 45},
-            {"id": "ROB-02", "status": "Manutenção", "load": 0, "temp": 22},
-            {"id": "EST-03", "status": "Ativa", "load": 40, "temp": 38},
-            {"id": "INV-04", "status": "Alerta", "load": 98, "temp": 72}
-        ],
-        "alertas": ["Troca de ferramenta CNC-01 em 2h", "Nível baixo de fluido hidráulico EST-03"]
-    })
-
-@app.route('/api/erp_data')
-@requer_perfil(['Engenharia'])
-def erp_data():
-    logs = AuditLog.query.order_by(AuditLog.id.desc()).limit(6).all()
-    return jsonify({
-        "financeiro": {"receita": "R$ 452.000", "custo": "R$ 128.000", "margem": "72%"},
-        "estoque": [
-            {"item": "Polímero PP", "qtd": "1.200kg", "critico": False},
-            {"item": "Pigmento Azul", "qtd": "50kg", "critico": True},
-            {"item": "Embalagens G", "qtd": "5.000un", "critico": False}
-        ],
-        "logs": [{"u": l.usuario, "a": l.acao, "d": l.data_hora.strftime('%H:%M')} for l in logs]
+        "temperatura": temp_atual, "limite": limite_alarme, "alarme": temp_atual > limite_alarme,
+        "pressao": pressao, "vazao": vazao
     })
 
 @app.route('/api/setpoint', methods=['POST'])
+@requer_perfil(['Operador'])
 def setpoint():
     global limite_alarme
     limite_alarme = float(request.get_json().get('valor'))
-    return jsonify({"s": "ok"})
+    registrar_log(f"Alteração de Setpoint para {limite_alarme}°C")
+    return jsonify({"mensagem": "Sucesso"})
+
+@app.route('/api/mes', methods=['GET'])
+@requer_perfil(['Supervisor'])
+def dados_mes():
+    return jsonify({
+        "ordem_servico": "OS-2026-409", "produto": "Válvula Metálica Hx-2",
+        "pecas_produzidas": random.randint(1200, 1250), "meta": 1500,
+        "oee": round(random.uniform(82.0, 89.5), 1),
+        "maquinas": [
+            {"nome": "Fresa CNC 01", "status": "Rodando", "cor": "success"},
+            {"nome": "Torno CNC 02", "status": "Em Setup", "cor": "warning"},
+            {"nome": "Solda Robótica", "status": "Parada", "cor": "danger"},
+            {"nome": "Esteira Insp.", "status": "Rodando", "cor": "success"}
+        ],
+        "avisos": ["Lote de aço inox chega às 14h", "Manutenção preventiva do Torno 02 agendada", "Meta de produção diária aumentada em 5%"]
+    })
+
+@app.route('/api/erp', methods=['GET'])
+@requer_perfil(['Engenharia'])
+def dados_erp():
+    logs = AuditLog.query.order_by(AuditLog.id.desc()).limit(10).all()
+    lista_logs = [{"data": l.data_hora.strftime('%d/%m %H:%M:%S'), "usuario": l.usuario, "acao": l.acao} for l in logs]
+    return jsonify({
+        "estoque": [
+            {"item": "Aço Inox (Chapa)", "qtd": "4.2 Ton", "status": "OK"},
+            {"item": "Parafusos Sextavados", "qtd": "15.000 un", "status": "Baixo"},
+            {"item": "Óleo Lubrificante", "qtd": "450 L", "status": "OK"}
+        ],
+        "kpi_financeiro": {"custo_energia": "R$ 1.450,00", "faturamento": "R$ 85.000,00", "desperdicio": "R$ 340,00"},
+        "logs": lista_logs
+    })
 
 if __name__ == '__main__':
-    with app.app_context(): db.create_all()
+    with app.app_context(): db.create_all() 
     app.run(debug=True)
