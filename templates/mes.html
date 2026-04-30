@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>MES - Produção</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>body { background-color: #0d1117; color: white; } .card { background-color: #161b22; border: 1px solid #30363d; }</style>
+</head>
+<body>
+<nav class="navbar navbar-dark bg-dark mb-4">
+    <div class="container-fluid">
+        <span class="navbar-brand text-warning">MES - Gestão de Produção</span>
+        <div>
+            <span class="navbar-text me-3 text-warning">Supervisor</span>
+            <a href="/logout" class="btn btn-outline-danger btn-sm">Sair</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-4"><div class="card p-4 text-center"><h5>Ordem Atual</h5><h3 id="os" class="text-info">--</h3></div></div>
+        <div class="col-md-4"><div class="card p-4 text-center"><h5>Produção</h5><h3><span id="pecas" class="text-success">--</span> / <span id="meta">--</span></h3></div></div>
+        <div class="col-md-4"><div class="card p-4 text-center border-warning"><h5>Eficiência (OEE)</h5><h2 id="oee" class="text-warning">--%</h2></div></div>
+    </div>
+</div>
+
+<script>
+    setInterval(async () => {
+        const res = await fetch('/api/mes');
+        const data = await res.json();
+        document.getElementById('os').innerText = data.ordem_servico;
+        document.getElementById('pecas').innerText = data.pecas_produzidas;
+        document.getElementById('meta').innerText = data.meta;
+        document.getElementById('oee').innerText = data.oee + "%";
+    }, 3000);
+</script>
+</body>
+</html>
