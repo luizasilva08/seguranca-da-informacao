@@ -2,113 +2,104 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>SCADA - Controle de Processos</title>
+    <title>Nexus SCADA | Terminal HMI</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .navbar-custom { background: #0b1120; border-bottom: 1px solid #1e293b; }
-        .card-custom { background: #1e293b; border: 1px solid #334155; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); }
-        .value-display { font-size: 2.5rem; font-weight: 700; color: #38bdf8; }
-        .unit { font-size: 1rem; color: #94a3b8; font-weight: normal; }
-        
-        /* A Mágica do Alarme Aqui */
-        @keyframes piscar-vermelho { 0% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); border-color: #ef4444; } 50% { box-shadow: 0 0 30px rgba(239, 68, 68, 0.8); border-color: #f87171; background-color: #450a0a; } 100% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); border-color: #ef4444; } }
-        .estado-alarme { animation: piscar-vermelho 1s infinite !important; }
+        body { background: #05070a; color: #ffffff; font-family: 'Inter', sans-serif; }
+        .hmi-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 25px; }
+        .val-display { font-size: 2.8rem; font-weight: 800; color: #ffffff; line-height: 1; }
+        .unit { font-size: 1rem; color: #64748b; font-weight: 400; margin-left: 5px; }
+        .label-tag { color: #38bdf8; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; }
+        .alarme-ativo { border-color: #ef4444 !important; background: linear-gradient(180deg, #0f172a 0%, #450a0a 100%) !important; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
-<nav class="navbar navbar-custom py-3 mb-4">
-    <div class="container-fluid px-4">
-        <span class="navbar-brand fw-bold" style="color: #38bdf8;">⚙️ HMI SCADA | Caldeira Principal</span>
-        <div><span class="badge bg-secondary me-3">Perfil: Operador</span><a href="/logout" class="btn btn-outline-danger btn-sm">Encerrar Sessão</a></div>
-    </div>
-</nav>
+    <div class="container-fluid p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="fw-bold m-0">PROCESS MONITOR <span class="text-secondary fs-6">// LINE_01</span></h4>
+            <a href="/logout" class="btn btn-sm btn-outline-danger">TERMINAL LOGOFF</a>
+        </div>
 
-<div class="container-fluid px-4">
-    <div class="row">
-        <div class="col-md-8">
-            <div id="card-temperatura" class="card card-custom p-4 mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="m-0 text-secondary">Evolução Térmica</h5>
-                    <span id="badge-status" class="badge bg-success fs-6">Operação Normal</span>
+        <div class="row g-4">
+            <div class="col-md-3">
+                <div id="card-temp" class="hmi-card">
+                    <span class="label-tag">TEMPERATURA NÚCLEO</span>
+                    <div class="val-display my-2" id="v-temp">--<span class="unit">°C</span></div>
+                    <canvas id="g-temp" height="100"></canvas>
                 </div>
-                <div class="row text-center mb-3">
-                    <div class="col-6 border-end border-secondary">
-                        <p class="m-0 text-muted">TEMP. ATUAL</p>
-                        <div id="temp" class="value-display">-- <span class="unit">°C</span></div>
-                    </div>
-                    <div class="col-6">
-                        <p class="m-0 text-muted">LIMITE DE ALARME</p>
-                        <div id="limite" class="value-display" style="color: #f59e0b;">-- <span class="unit">°C</span></div>
-                    </div>
+            </div>
+            <div class="col-md-3">
+                <div class="hmi-card">
+                    <span class="label-tag">PRESSÃO HIDRÁULICA</span>
+                    <div class="val-display my-2" id="v-pres">--<span class="unit">bar</span></div>
+                    <canvas id="g-pres" height="100"></canvas>
                 </div>
-                <canvas id="grafico" height="80"></canvas>
+            </div>
+            <div class="col-md-3">
+                <div class="hmi-card">
+                    <span class="label-tag">VAZÃO DE REFRIGERANTE</span>
+                    <div class="val-display my-2" id="v-vaz">--<span class="unit">L/m</span></div>
+                    <canvas id="g-vaz" height="100"></canvas>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="hmi-card">
+                    <span class="label-tag">NÍVEL TANQUE 01</span>
+                    <div class="val-display my-2" id="v-niv">--<span class="unit">%</span></div>
+                    <canvas id="g-niv" height="100"></canvas>
+                </div>
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="card card-custom p-3 mb-3 border-start border-4 border-info">
-                <p class="m-0 text-muted text-uppercase small fw-bold">Pressão Interna</p>
-                <div id="pressao" class="value-display">-- <span class="unit">bar</span></div>
-            </div>
-            
-            <div class="card card-custom p-3 mb-4 border-start border-4 border-primary">
-                <p class="m-0 text-muted text-uppercase small fw-bold">Vazão de Fluido</p>
-                <div id="vazao" class="value-display">-- <span class="unit">L/min</span></div>
-            </div>
-
-            <div class="card card-custom p-4 border-warning">
-                <h6 class="text-warning mb-3">Painel de Controle</h6>
-                <label class="form-label text-secondary small">Ajustar Novo Limite (°C)</label>
-                <div class="input-group">
-                    <input type="number" id="val-setpoint" class="form-control bg-dark text-white border-secondary" placeholder="Ex: 185">
-                    <button class="btn btn-warning fw-bold" onclick="alterarSetpoint()">Aplicar</button>
+        <div class="row mt-4">
+            <div class="col-md-4">
+                <div class="hmi-card border-warning">
+                    <span class="label-tag text-warning">CONFIGURAÇÃO DE SETPOINT</span>
+                    <div class="input-group mt-3">
+                        <input type="number" id="setp" class="form-control bg-dark border-secondary text-white" placeholder="Limite de Alarme">
+                        <button class="btn btn-warning fw-bold" onclick="salvar()">ATUALIZAR</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<script>
-    const ctx = document.getElementById('grafico').getContext('2d');
-    const chart = new Chart(ctx, { type: 'line', data: { labels: [], datasets: [{ label: 'Temperatura', data: [], borderColor: '#38bdf8', backgroundColor: 'rgba(56, 189, 248, 0.1)', fill: true, tension: 0.4 }] }, options: { animation: false, scales: { y: { suggestedMin: 170, suggestedMax: 195, grid: {color: '#334155'} }, x: { grid: {color: '#334155'} } }, plugins: { legend: { display: false } } } });
-
-    setInterval(async () => {
-        const res = await fetch('/api/monitoramento');
-        const data = await res.json();
-        
-        document.getElementById('temp').innerHTML = `${data.temperatura} <span class="unit">°C</span>`;
-        document.getElementById('limite').innerHTML = `${data.limite} <span class="unit">°C</span>`;
-        document.getElementById('pressao').innerHTML = `${data.pressao} <span class="unit">bar</span>`;
-        document.getElementById('vazao').innerHTML = `${data.vazao} <span class="unit">L/min</span>`;
-
-        // Lógica do Alarme
-        const cardTemp = document.getElementById('card-temperatura');
-        const badge = document.getElementById('badge-status');
-        
-        if (data.alarme) {
-            cardTemp.classList.add('estado-alarme');
-            badge.className = "badge bg-danger fs-6";
-            badge.innerText = "ALERTA: SOBREAQUECIMENTO";
-        } else {
-            cardTemp.classList.remove('estado-alarme');
-            badge.className = "badge bg-success fs-6";
-            badge.innerText = "Operação Normal";
+    <script>
+        function initChart(id, color) {
+            return new Chart(document.getElementById(id), {
+                type: 'line',
+                data: { labels: Array(20).fill(''), datasets: [{ data: [], borderColor: color, borderWidth: 2, pointRadius: 0, fill: true, backgroundColor: color+'22', tension: 0.4 }] },
+                options: { animation: false, scales: { x: {display: false}, y: {display: false} }, plugins: {legend: {display: false}} }
+            });
         }
+        const charts = { temp: initChart('g-temp', '#38bdf8'), pres: initChart('g-pres', '#10b981'), vaz: initChart('g-vaz', '#f59e0b'), niv: initChart('g-niv', '#a855f7') };
 
-        chart.data.labels.push(new Date().toLocaleTimeString());
-        chart.data.datasets[0].data.push(data.temperatura);
-        if(chart.data.labels.length > 15) { chart.data.labels.shift(); chart.data.datasets[0].data.shift(); }
-        chart.update();
-    }, 2000);
+        async function tick() {
+            const res = await fetch('/api/scada_data');
+            const d = (await res.json()).maquina_01;
+            
+            document.getElementById('v-temp').innerHTML = `${d.temp}<span class="unit">°C</span>`;
+            document.getElementById('v-pres').innerHTML = `${d.pressao}<span class="unit">bar</span>`;
+            document.getElementById('v-vaz').innerHTML = `${d.vazao}<span class="unit">L/m</span>`;
+            document.getElementById('v-niv').innerHTML = `${d.nivel}<span class="unit">%</span>`;
 
-    async function alterarSetpoint() {
-        const val = document.getElementById('val-setpoint').value;
-        if(!val) return;
-        await fetch('/api/setpoint', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ valor: val }) });
-        document.getElementById('val-setpoint').value = '';
-    }
-</script>
+            const card = document.getElementById('card-temp');
+            if(d.alarme) card.classList.add('alarme-ativo'); else card.classList.remove('alarme-ativo');
+
+            Object.keys(charts).forEach(k => {
+                const val = k === 'temp' ? d.temp : k === 'pres' ? d.pressao : k === 'vaz' ? d.vazao : d.nivel;
+                charts[k].data.datasets[0].data.push(val);
+                if(charts[k].data.datasets[0].data.length > 20) charts[k].data.datasets[0].data.shift();
+                charts[k].update();
+            });
+        }
+        setInterval(tick, 2000);
+        async function salvar() {
+            await fetch('/api/setpoint', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({valor: document.getElementById('setp').value}) });
+            alert("Sistema Atualizado");
+        }
+    </script>
 </body>
 </html>
