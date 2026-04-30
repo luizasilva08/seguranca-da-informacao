@@ -2,64 +2,69 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Nexus SCADA | Terminal HMI</title>
+    <title>SCADA Terminal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { background: #05070a; color: #ffffff; font-family: 'Inter', sans-serif; }
-        .hmi-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 25px; }
-        .val-display { font-size: 2.8rem; font-weight: 800; color: #ffffff; line-height: 1; }
-        .unit { font-size: 1rem; color: #64748b; font-weight: 400; margin-left: 5px; }
-        .label-tag { color: #38bdf8; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; }
-        .alarme-ativo { border-color: #ef4444 !important; background: linear-gradient(180deg, #0f172a 0%, #450a0a 100%) !important; animation: pulse 1s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
+        body { background: #020617; color: #ffffff; font-family: 'Inter', sans-serif; }
+        .header { background: #0f172a; border-bottom: 1px solid #1e293b; padding: 15px 30px; }
+        .v-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 20px; transition: 0.3s; }
+        .val { font-size: 2.2rem; font-weight: 800; color: #fff; margin: 5px 0; }
+        .unit { font-size: 0.9rem; color: #64748b; }
+        .lbl { color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
+        canvas { max-height: 120px; }
+        .alarme-on { border-color: #ef4444; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { background: #0f172a; } 50% { background: #450a0a; } 100% { background: #0f172a; } }
     </style>
 </head>
 <body>
-    <div class="container-fluid p-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="fw-bold m-0">PROCESS MONITOR <span class="text-secondary fs-6">// LINE_01</span></h4>
-            <a href="/logout" class="btn btn-sm btn-outline-danger">TERMINAL LOGOFF</a>
+    <div class="header d-flex justify-content-between align-items-center">
+        <h5 class="m-0 fw-bold">SCADA // MÁQUINA_01</h5>
+        <div class="d-flex align-items-center">
+            <span class="badge bg-primary me-3">MODO OPERADOR</span>
+            <a href="/logout" class="btn btn-sm btn-outline-danger">SAIR</a>
         </div>
+    </div>
 
-        <div class="row g-4">
+    <div class="container-fluid p-4">
+        <div class="row g-3">
             <div class="col-md-3">
-                <div id="card-temp" class="hmi-card">
-                    <span class="label-tag">TEMPERATURA NÚCLEO</span>
-                    <div class="val-display my-2" id="v-temp">--<span class="unit">°C</span></div>
-                    <canvas id="g-temp" height="100"></canvas>
+                <div id="c-temp" class="v-card">
+                    <span class="lbl">Temperatura</span>
+                    <div class="val" id="v-temp">-- <span class="unit">°C</span></div>
+                    <canvas id="g-temp"></canvas>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="hmi-card">
-                    <span class="label-tag">PRESSÃO HIDRÁULICA</span>
-                    <div class="val-display my-2" id="v-pres">--<span class="unit">bar</span></div>
-                    <canvas id="g-pres" height="100"></canvas>
+                <div class="v-card">
+                    <span class="lbl">Pressão</span>
+                    <div class="val" id="v-pres">-- <span class="unit">bar</span></div>
+                    <canvas id="g-pres"></canvas>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="hmi-card">
-                    <span class="label-tag">VAZÃO DE REFRIGERANTE</span>
-                    <div class="val-display my-2" id="v-vaz">--<span class="unit">L/m</span></div>
-                    <canvas id="g-vaz" height="100"></canvas>
+                <div class="v-card">
+                    <span class="lbl">Vazão</span>
+                    <div class="val" id="v-vaz">-- <span class="unit">L/m</span></div>
+                    <canvas id="g-vaz"></canvas>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="hmi-card">
-                    <span class="label-tag">NÍVEL TANQUE 01</span>
-                    <div class="val-display my-2" id="v-niv">--<span class="unit">%</span></div>
-                    <canvas id="g-niv" height="100"></canvas>
+                <div class="v-card">
+                    <span class="lbl">Nível Reservatório</span>
+                    <div class="val" id="v-niv">-- <span class="unit">%</span></div>
+                    <canvas id="g-niv"></canvas>
                 </div>
             </div>
         </div>
 
         <div class="row mt-4">
             <div class="col-md-4">
-                <div class="hmi-card border-warning">
-                    <span class="label-tag text-warning">CONFIGURAÇÃO DE SETPOINT</span>
+                <div class="v-card">
+                    <span class="lbl">Controle de Alarme</span>
                     <div class="input-group mt-3">
-                        <input type="number" id="setp" class="form-control bg-dark border-secondary text-white" placeholder="Limite de Alarme">
-                        <button class="btn btn-warning fw-bold" onclick="salvar()">ATUALIZAR</button>
+                        <input type="number" id="setp" class="form-control bg-dark border-secondary text-white" placeholder="Limite Temp.">
+                        <button class="btn btn-primary" onclick="setar()">SALVAR</button>
                     </div>
                 </div>
             </div>
@@ -67,16 +72,21 @@
     </div>
 
     <script>
-        function initChart(id, color) {
+        function createChart(id, color) {
             return new Chart(document.getElementById(id), {
                 type: 'line',
-                data: { labels: Array(20).fill(''), datasets: [{ data: [], borderColor: color, borderWidth: 2, pointRadius: 0, fill: true, backgroundColor: color+'22', tension: 0.4 }] },
+                data: { labels: [], datasets: [{ data: [], borderColor: color, borderWidth: 2, fill: false, pointRadius: 0 }] },
                 options: { animation: false, scales: { x: {display: false}, y: {display: false} }, plugins: {legend: {display: false}} }
             });
         }
-        const charts = { temp: initChart('g-temp', '#38bdf8'), pres: initChart('g-pres', '#10b981'), vaz: initChart('g-vaz', '#f59e0b'), niv: initChart('g-niv', '#a855f7') };
+        const charts = {
+            temp: createChart('g-temp', '#38bdf8'),
+            pres: createChart('g-pres', '#10b981'),
+            vaz: createChart('g-vaz', '#f59e0b'),
+            niv: createChart('g-niv', '#a855f7')
+        };
 
-        async function tick() {
+        async function update() {
             const res = await fetch('/api/scada_data');
             const d = (await res.json()).maquina_01;
             
@@ -85,20 +95,21 @@
             document.getElementById('v-vaz').innerHTML = `${d.vazao}<span class="unit">L/m</span>`;
             document.getElementById('v-niv').innerHTML = `${d.nivel}<span class="unit">%</span>`;
 
-            const card = document.getElementById('card-temp');
-            if(d.alarme) card.classList.add('alarme-ativo'); else card.classList.remove('alarme-ativo');
+            if(d.alarme) document.getElementById('c-temp').classList.add('alarme-on');
+            else document.getElementById('c-temp').classList.remove('alarme-on');
 
-            Object.keys(charts).forEach(k => {
-                const val = k === 'temp' ? d.temp : k === 'pres' ? d.pressao : k === 'vaz' ? d.vazao : d.nivel;
-                charts[k].data.datasets[0].data.push(val);
-                if(charts[k].data.datasets[0].data.length > 20) charts[k].data.datasets[0].data.shift();
+            const time = new Date().toLocaleTimeString();
+            [['temp', d.temp], ['pres', d.pressao], ['vaz', d.vazao], ['niv', d.nivel]].forEach(([k, v]) => {
+                charts[k].data.labels.push(time);
+                charts[k].data.datasets[0].data.push(v);
+                if(charts[k].data.labels.length > 20) { charts[k].data.labels.shift(); charts[k].data.datasets[0].data.shift(); }
                 charts[k].update();
             });
         }
-        setInterval(tick, 2000);
-        async function salvar() {
+        setInterval(update, 2000);
+        async function setar() {
             await fetch('/api/setpoint', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({valor: document.getElementById('setp').value}) });
-            alert("Sistema Atualizado");
+            alert("Limite atualizado!");
         }
     </script>
 </body>
