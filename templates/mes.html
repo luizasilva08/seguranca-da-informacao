@@ -2,26 +2,49 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>MES - Produção</title>
+    <title>MES - Gestão de Chão de Fábrica</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>body { background-color: #0d1117; color: white; } .card { background-color: #161b22; border: 1px solid #30363d; }</style>
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .navbar-custom { background: #0b1120; border-bottom: 1px solid #1e293b; }
+        .card-custom { background: #1e293b; border: 1px solid #334155; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); }
+        .metric { font-size: 2rem; font-weight: bold; }
+        .machine-box { padding: 15px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; text-align: center; }
+        .aviso-item { border-left: 4px solid #f59e0b; padding-left: 10px; margin-bottom: 10px; background: rgba(245, 158, 11, 0.1); padding: 8px; border-radius: 4px;}
+    </style>
 </head>
 <body>
-<nav class="navbar navbar-dark bg-dark mb-4">
-    <div class="container-fluid">
-        <span class="navbar-brand text-warning">MES - Gestão de Produção</span>
-        <div>
-            <span class="navbar-text me-3 text-warning">Supervisor</span>
-            <a href="/logout" class="btn btn-outline-danger btn-sm">Sair</a>
-        </div>
+<nav class="navbar navbar-custom py-3 mb-4">
+    <div class="container-fluid px-4">
+        <span class="navbar-brand fw-bold" style="color: #f59e0b;">📊 MES | Controle de Manufatura</span>
+        <div><span class="badge bg-secondary me-3">Perfil: Supervisão</span><a href="/logout" class="btn btn-outline-danger btn-sm">Encerrar Sessão</a></div>
     </div>
 </nav>
 
-<div class="container mt-5">
+<div class="container-fluid px-4">
+    <div class="row mb-4">
+        <div class="col-md-3"><div class="card card-custom p-3 text-center"><span class="text-muted small">ORDEM ATUAL</span><div id="os" class="metric text-info">--</div></div></div>
+        <div class="col-md-3"><div class="card card-custom p-3 text-center"><span class="text-muted small">PRODUTO</span><div id="prod" class="metric text-light fs-4 mt-2">--</div></div></div>
+        <div class="col-md-3"><div class="card card-custom p-3 text-center"><span class="text-muted small">PEÇAS (ATUAL / META)</span><div class="metric"><span id="pecas" class="text-success">--</span> <span class="fs-5 text-muted">/ <span id="meta">--</span></span></div></div></div>
+        <div class="col-md-3"><div class="card card-custom p-3 text-center border-bottom border-4 border-warning"><span class="text-muted small">OEE GLOBAL</span><div id="oee" class="metric text-warning">--%</div></div></div>
+    </div>
+
     <div class="row">
-        <div class="col-md-4"><div class="card p-4 text-center"><h5>Ordem Atual</h5><h3 id="os" class="text-info">--</h3></div></div>
-        <div class="col-md-4"><div class="card p-4 text-center"><h5>Produção</h5><h3><span id="pecas" class="text-success">--</span> / <span id="meta">--</span></h3></div></div>
-        <div class="col-md-4"><div class="card p-4 text-center border-warning"><h5>Eficiência (OEE)</h5><h2 id="oee" class="text-warning">--%</h2></div></div>
+        <div class="col-md-8">
+            <div class="card card-custom p-4 h-100">
+                <h5 class="text-secondary mb-4">Status do Parque Fabril (Linha 1)</h5>
+                <div class="row g-3" id="grid-maquinas">
+                    </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card card-custom p-4 h-100">
+                <h5 class="text-secondary mb-4">Mural de Avisos</h5>
+                <div id="lista-avisos">
+                    </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -29,10 +52,26 @@
     setInterval(async () => {
         const res = await fetch('/api/mes');
         const data = await res.json();
+        
         document.getElementById('os').innerText = data.ordem_servico;
+        document.getElementById('prod').innerText = data.produto;
         document.getElementById('pecas').innerText = data.pecas_produzidas;
         document.getElementById('meta').innerText = data.meta;
         document.getElementById('oee').innerText = data.oee + "%";
+
+        document.getElementById('grid-maquinas').innerHTML = data.maquinas.map(m => `
+            <div class="col-md-6">
+                <div class="machine-box border-${m.cor}">
+                    <h6 class="text-light">${m.nome}</h6>
+                    <span class="badge bg-${m.cor}">${m.status}</span>
+                </div>
+            </div>
+        `).join('');
+
+        document.getElementById('lista-avisos').innerHTML = data.avisos.map(a => `
+            <div class="aviso-item text-light small">${a}</div>
+        `).join('');
+
     }, 3000);
 </script>
 </body>
