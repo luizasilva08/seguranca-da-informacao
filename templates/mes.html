@@ -12,28 +12,59 @@
         .panel { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .panel-header { font-size: 0.8rem; text-transform: uppercase; color: #94a3b8; font-weight: 600; margin-bottom: 15px;}
         
-        /* DESENHO DAS MÁQUINAS */
-        .maquina-desenho { background: #070a11; border: 2px solid #334155; border-radius: 10px; padding: 20px; text-align: center; position: relative; transition: all 0.3s;}
+        /* NOVO LAYOUT: PLANTA BAIXA DA FÁBRICA */
+        .chao-de-fabrica-container {
+            background-color: #1e2128;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+        }
         
-        /* CNC / Engrenagens */
-        .gear-container { width: 60px; height: 60px; margin: 0 auto 15px; border-radius: 50%; border: 4px dashed #64748b; display: flex; align-items: center; justify-content: center; }
-        .gear-inner { width: 30px; height: 30px; background: #38bdf8; border-radius: 50%; box-shadow: 0 0 15px #38bdf8; }
-        .rodando .gear-container { animation: spin 4s linear infinite; border-color: #10b981; }
-        .rodando .gear-inner { background: #10b981; box-shadow: 0 0 15px #10b981;}
+        .planta-fabrica {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            padding: 30px;
+            background-image: 
+                linear-gradient(#2a2d35 1px, transparent 1px),
+                linear-gradient(90deg, #2a2d35 1px, transparent 1px);
+            background-size: 20px 20px;
+            border: 2px solid #334155;
+            border-radius: 8px;
+        }
         
-        /* Esteira / Rolamentos */
-        .conveyor { width: 100px; height: 20px; background: #334155; margin: 20px auto; border-radius: 10px; display: flex; justify-content: space-around; align-items: center; padding: 0 5px;}
-        .roller { width: 12px; height: 12px; background: #64748b; border-radius: 50%; }
-        .rodando .roller { background: #10b981; animation: bounce 0.5s infinite alternate; }
-
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        @keyframes bounce { to { transform: translateY(-3px); } }
-
-        /* Estado de Alarme GERAL do MES */
-        .maquina-alarme { border-color: #ef4444; background: rgba(239, 68, 68, 0.05); }
-        .maquina-alarme .gear-container { border-color: #ef4444; animation: none; }
-        .maquina-alarme .gear-inner { background: #ef4444; box-shadow: 0 0 15px #ef4444; }
-        .maquina-alarme .roller { background: #ef4444; animation: none; }
+        .maquina-bloco {
+            background-color: #151b28;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        
+        .icone-maq { font-size: 3rem; margin-bottom: 15px; }
+        .nome-maq { font-weight: 600; color: #f8fafc; font-size: 0.9rem; letter-spacing: 1px; margin-bottom: 5px; }
+        
+        /* LUZ DE STATUS E ANIMAÇÃO */
+        .status-luz {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            margin: 15px auto 10px auto;
+            transition: all 0.3s ease;
+        }
+        .status-luz.verde { background-color: #10b981; box-shadow: 0 0 15px #10b981; }
+        
+        @keyframes piscar-emergencia {
+            0% { background-color: #151b28; border-color: #ef4444; box-shadow: 0 0 10px rgba(239,68,68,0.2); }
+            50% { background-color: #450a0a; border-color: #ef4444; box-shadow: 0 0 30px rgba(239,68,68,0.8); }
+            100% { background-color: #151b28; border-color: #ef4444; box-shadow: 0 0 10px rgba(239,68,68,0.2); }
+        }
+        
+        .em-alarme { animation: piscar-emergencia 1s infinite !important; }
+        .em-alarme .status-luz { background-color: #ef4444 !important; box-shadow: 0 0 20px #ef4444 !important; }
         
         .tela-sirene { border: 2px solid #ef4444; animation: flash-bg 1s infinite; }
         @keyframes flash-bg { 50% { background-color: rgba(239, 68, 68, 0.1); } }
@@ -53,32 +84,29 @@
         <div class="col-md-4"><div class="panel text-center" id="painel-status"><div class="panel-header">STATUS DA LINHA</div><div class="data-value fs-3 text-info" id="status-linha">AGUARDANDO...</div></div></div>
     </div>
 
-    <div class="panel h-100">
-        <div class="panel-header">CHÃO DE FÁBRICA - SUPERVISÃO DE MÁQUINAS</div>
-        <div class="row g-4" id="grid-maquinas">
+    <div class="chao-de-fabrica-container">
+        <div class="panel-header mb-3" style="color: #cbd5e1;">📍 Planta Baixa - Visualização Espacial</div>
+        <div class="planta-fabrica">
             
-            <div class="col-md-4">
-                <div class="maquina-desenho rodando" id="maq-1">
-                    <div class="gear-container"><div class="gear-inner"></div></div>
-                    <h5 class="text-light">FRESA CNC 5-EIXOS</h5>
-                    <span class="badge" id="badge-1">Rodando</span>
-                </div>
+            <div id="maq-1" class="maquina-bloco">
+                <div class="icone-maq">⚙️</div>
+                <div class="nome-maq">FRESA CNC 5-EIXOS</div>
+                <div id="luz-maq-1" class="status-luz verde"></div>
+                <span id="texto-maq-1" class="badge bg-success mt-2">Rodando</span>
             </div>
 
-            <div class="col-md-4">
-                <div class="maquina-desenho rodando" id="maq-2">
-                    <div style="font-size: 3rem; color: #38bdf8;" id="icone-2">🦾</div>
-                    <h5 class="text-light">ROBÔ DE SOLDA</h5>
-                    <span class="badge" id="badge-2">Rodando</span>
-                </div>
+            <div id="maq-2" class="maquina-bloco">
+                <div class="icone-maq">🦾</div>
+                <div class="nome-maq">ROBÔ DE SOLDA</div>
+                <div id="luz-maq-2" class="status-luz verde"></div>
+                <span id="texto-maq-2" class="badge bg-success mt-2">Rodando</span>
             </div>
 
-            <div class="col-md-4">
-                <div class="maquina-desenho rodando" id="maq-3">
-                    <div class="conveyor"><div class="roller"></div><div class="roller"></div><div class="roller"></div></div>
-                    <h5 class="text-light">ESTEIRA DE INSPEÇÃO</h5>
-                    <span class="badge" id="badge-3">Rodando</span>
-                </div>
+            <div id="maq-3" class="maquina-bloco">
+                <div class="icone-maq">🛤️</div>
+                <div class="nome-maq">ESTEIRA DE INSPEÇÃO</div>
+                <div id="luz-maq-3" class="status-luz verde"></div>
+                <span id="texto-maq-3" class="badge bg-success mt-2">Rodando</span>
             </div>
 
         </div>
@@ -87,44 +115,51 @@
 
 <script>
     setInterval(async () => {
-        const res = await fetch('/api/mes');
-        const data = await res.json();
-        
-        document.getElementById('pecas').innerText = data.pecas_produzidas;
-        document.getElementById('meta').innerText = data.meta;
-        document.getElementById('oee').innerText = data.oee.toFixed(1) + "%";
-        
-        const painelStatus = document.getElementById('painel-status');
-        const txtStatus = document.getElementById('status-linha');
-
-        if (data.alarme_ativo) {
-            painelStatus.className = "panel text-center tela-sirene";
-            txtStatus.className = "data-value fs-3 text-danger";
-            txtStatus.innerText = "PARADA GERAL (ALARME SCADA)";
-        } else {
-            painelStatus.className = "panel text-center";
-            txtStatus.className = "data-value fs-3 text-success";
-            txtStatus.innerText = "OPERAÇÃO CONTÍNUA";
-        }
-
-        // Aplica o status visual (cores e animações) em cada desenho de máquina
-        data.maquinas.forEach((m, index) => {
-            const num = index + 1;
-            const card = document.getElementById('maq-' + num);
-            const badge = document.getElementById('badge-' + num);
+        try {
+            const res = await fetch('/api/mes');
+            const data = await res.json();
             
-            badge.innerText = m.status;
-            badge.className = `badge bg-${m.cor} fs-6 mt-2`;
+            document.getElementById('pecas').innerText = data.pecas_produzidas;
+            document.getElementById('meta').innerText = data.meta;
+            document.getElementById('oee').innerText = data.oee.toFixed(1) + "%";
+            
+            const painelStatus = document.getElementById('painel-status');
+            const txtStatus = document.getElementById('status-linha');
 
+            // Controlo do Alarme Geral do Painel Superior
             if (data.alarme_ativo) {
-                card.className = "maquina-desenho maquina-alarme";
-                if(num === 2) document.getElementById('icone-2').style.color = "#ef4444"; // Robô vermelho
+                painelStatus.className = "panel text-center tela-sirene";
+                txtStatus.className = "data-value fs-3 text-danger";
+                txtStatus.innerText = "PARADA GERAL (ALARME)";
             } else {
-                card.className = "maquina-desenho rodando";
-                if(num === 2) document.getElementById('icone-2').style.color = "#10b981"; // Robô verde
+                painelStatus.className = "panel text-center";
+                txtStatus.className = "data-value fs-3 text-success";
+                txtStatus.innerText = "OPERAÇÃO CONTÍNUA";
             }
-        });
 
+            // A LÓGICA CORRIGIDA: Adiciona e REMOVE o alarme dinamicamente das máquinas
+            data.maquinas.forEach((m, index) => {
+                const num = index + 1;
+                const maqBloco = document.getElementById('maq-' + num);
+                const luzMaq = document.getElementById('luz-maq-' + num);
+                const textoMaq = document.getElementById('texto-maq-' + num);
+                
+                textoMaq.innerText = m.status;
+                textoMaq.className = `badge bg-${m.cor} mt-2`;
+
+                if (data.alarme_ativo) {
+                    // Liga o Alarme
+                    maqBloco.classList.add('em-alarme');
+                    luzMaq.classList.remove('verde');
+                } else {
+                    // Desliga o Alarme e restaura ao estado normal
+                    maqBloco.classList.remove('em-alarme');
+                    luzMaq.classList.add('verde');
+                }
+            });
+        } catch(e) {
+            console.error("Erro na atualização do MES:", e);
+        }
     }, 2000);
 </script>
 </body>
