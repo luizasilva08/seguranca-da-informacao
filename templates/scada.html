@@ -2,9 +2,8 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>HMI SCADA | Caldeira Principal</title>
+    <title>HMI SCADA</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -17,25 +16,21 @@
         
         .estado-alarme { border-color: #ef4444 !important; box-shadow: inset 0 0 20px rgba(239,68,68,0.1) !important; animation: piscar 1.5s infinite;}
         @keyframes piscar { 50% { border-color: #991b1b !important; } }
-        
-        /* Terminal Log CSS */
         .log-terminal { background: #000; border: 1px solid #334155; border-radius: 6px; padding: 10px; height: 150px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #a3e635; }
-        .log-entry.error { color: #f87171; }
-        .log-entry.info { color: #38bdf8; }
     </style>
 </head>
 <body>
 
 <div class="container-fluid px-4 py-3">
     <div class="d-flex justify-content-between mb-3 border-bottom border-secondary pb-2">
-        <h5 class="text-info m-0"><i class="bi bi-cpu-fill"></i> HMI SCADA - Caldeira Multivariável</h5>
+        <h5 class="text-info m-0">⚙️ HMI SCADA - Caldeira Multivariável</h5>
         <a href="/logout" class="btn btn-outline-danger btn-sm">Sair</a>
     </div>
 
     <div class="row g-3">
         <div class="col-md-3">
             <div class="panel border-warning h-100">
-                <h6 class="text-warning mb-4"><i class="bi bi-sliders"></i> Ajustes de Setpoint (SP)</h6>
+                <h6 class="text-warning mb-4">Ajustes de Setpoint (SP)</h6>
                 
                 <label class="small text-secondary">Temp Máxima (°C)</label>
                 <div class="input-group input-group-sm mb-3">
@@ -85,38 +80,32 @@
         
         <div class="col-12">
             <div class="panel">
-                <div class="metric-header">CONSOLE DE EVENTOS DO SISTEMA</div>
-                <div id="terminal" class="log-terminal">
-                    <div class="log-entry info">[SISTEMA] Conexão PLC estabelecida com sucesso.</div>
-                </div>
+                <div class="metric-header">CONSOLE DE EVENTOS</div>
+                <div id="terminal" class="log-terminal"><div style="color: #38bdf8;">[SISTEMA] Sincronização de Dados Ativa.</div></div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    const chartOptions = { responsive: true, maintainAspectRatio: false, animation: false, scales: { x: { display: false }, y: { grid: { color: '#1e293b' } } }, plugins: { legend: { display: false } } };
-    const createChart = (id, color) => new Chart(document.getElementById(id).getContext('2d'), { type: 'line', data: { labels: [], datasets: [{ data: [], borderColor: color, tension: 0.3 }] }, options: chartOptions });
+    const opts = { responsive: true, maintainAspectRatio: false, animation: false, scales: { x: { display: false }, y: { grid: { color: '#1e293b' } } }, plugins: { legend: { display: false } } };
+    const cTemp = new Chart(document.getElementById('chartTemp').getContext('2d'), { type: 'line', data: { labels: [], datasets: [{ data: [], borderColor: '#0ea5e9', fill: true, tension: 0.3 }] }, options: opts });
+    const cPress = new Chart(document.getElementById('chartPressao').getContext('2d'), { type: 'line', data: { labels: [], datasets: [{ data: [], borderColor: '#3b82f6', tension: 0.3 }] }, options: opts });
+    const cVazao = new Chart(document.getElementById('chartVazao').getContext('2d'), { type: 'line', data: { labels: [], datasets: [{ data: [], borderColor: '#10b981', tension: 0.3 }] }, options: opts });
 
-    const cTemp = createChart('chartTemp', '#0ea5e9');
-    const cPress = createChart('chartPressao', '#3b82f6');
-    const cVazao = createChart('chartVazao', '#10b981');
+    let stateAlarme = { temp: false, pressao: false, vazao: false };
 
-    let alarmesAtivos = { temp: false, pressao: false, vazao: false };
-
-    function logTerminal(msg, tipo = "info") {
+    function log(msg, color) {
         const term = document.getElementById('terminal');
-        const time = new Date().toLocaleTimeString();
-        term.innerHTML += `<div class="log-entry ${tipo}">[${time}] ${msg}</div>`;
+        term.innerHTML += `<div style="color: ${color}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
         term.scrollTop = term.scrollHeight;
     }
 
     setInterval(async () => {
         const res = await fetch('/api/monitoramento');
         const d = await res.json();
-        const time = new Date().toLocaleTimeString();
+        const t = new Date().toLocaleTimeString();
         
-        // Atualiza Textos
         document.getElementById('val-temp').innerText = d.temp.valor.toFixed(1) + ' °C';
         document.getElementById('val-lim-temp').innerText = 'SP: ' + d.temp.limite;
         document.getElementById('val-pressao').innerText = d.pressao.valor.toFixed(2) + ' bar';
@@ -124,35 +113,32 @@
         document.getElementById('val-vazao').innerText = d.vazao.valor.toFixed(1) + ' L/m';
         document.getElementById('val-lim-vazao').innerText = 'SP: ' + d.vazao.limite;
 
-        // Lógica Visual e Log de Alarmes
-        const checkAlarm = (key, dataObj, cardId, msgAtivacao, msgNormal) => {
+        const handleAlarme = (key, dataObj, cardId, msgAtiva, msgNormal) => {
             if (dataObj.alarme) {
                 document.getElementById(cardId).classList.add('estado-alarme');
-                if (!alarmesAtivos[key]) { logTerminal(msgAtivacao, "error"); alarmesAtivos[key] = true; }
+                if (!stateAlarme[key]) { log(msgAtiva, "#f87171"); stateAlarme[key] = true; }
             } else {
                 document.getElementById(cardId).classList.remove('estado-alarme');
-                if (alarmesAtivos[key]) { logTerminal(msgNormal, "info"); alarmesAtivos[key] = false; }
+                if (stateAlarme[key]) { log(msgNormal, "#a3e635"); stateAlarme[key] = false; }
             }
         };
 
-        checkAlarm('temp', d.temp, 'card-temp', 'ALERTA CRÍTICO: Temperatura acima do Setpoint!', 'Temperatura retornou à normalidade.');
-        checkAlarm('pressao', d.pressao, 'card-pressao', 'ALERTA: Pressão interna elevada!', 'Pressão estabilizada.');
-        checkAlarm('vazao', d.vazao, 'card-vazao', 'ALERTA: Queda brusca na vazão de fluido!', 'Vazão restabelecida.');
+        handleAlarme('temp', d.temp, 'card-temp', 'ALERTA: Temperatura Alta!', 'Temperatura normalizada.');
+        handleAlarme('pressao', d.pressao, 'card-pressao', 'ALERTA: Pressão Alta!', 'Pressão normalizada.');
+        handleAlarme('vazao', d.vazao, 'card-vazao', 'ALERTA: Baixa Vazão!', 'Vazão normalizada.');
 
-        // Gráficos
         [cTemp, cPress, cVazao].forEach((c, i) => {
-            c.data.labels.push(time);
-            c.data.datasets[0].data.push([d.temp.valor, d.pressao.valor, d.vazao.valor][i]);
-            if(c.data.labels.length > 15) { c.data.labels.shift(); c.data.datasets[0].data.shift(); }
+            c.data.labels.push(t); c.data.datasets[0].data.push([d.temp.valor, d.pressao.valor, d.vazao.valor][i]);
+            if(c.data.labels.length > 20) { c.data.labels.shift(); c.data.datasets[0].data.shift(); }
             c.update();
         });
     }, 2000);
 
-    async function alterarSetpoint(variavel, inputId) {
+    async function alterarSetpoint(varName, inputId) {
         const val = document.getElementById(inputId).value;
         if(!val) return;
-        await fetch('/api/setpoint', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ variavel: variavel, valor: val }) });
-        logTerminal(`Setpoint de ${variavel.toUpperCase()} alterado pelo operador para ${val}`, "info");
+        await fetch('/api/setpoint', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ variavel: varName, valor: val }) });
+        log(`Você alterou o Setpoint de ${varName.toUpperCase()} para ${val}`, "#38bdf8");
         document.getElementById(inputId).value = '';
     }
 </script>
