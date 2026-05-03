@@ -10,12 +10,21 @@
     <style>
         :root { --bg-dark: #0f172a; --panel-bg: #1e293b; --border-color: #334155; }
         body { background-color: var(--bg-dark); color: #f8fafc; font-family: 'Inter', sans-serif; }
+        
+        /* CORREÇÃO DAS CORES DE TEXTO NO TEMA ESCURO */
+        h1, h2, h3, h4, h5, h6, p, span, div { color: #f8f9fa; }
+        .text-muted { color: #94a3b8 !important; }
+        .text-secondary { color: #cbd5e1 !important; }
+        .text-primary { color: #38bdf8 !important; font-weight: 600; } /* Azul brilhante para os utilizadores */
+
         .topbar { background: #0f172a; border-bottom: 1px solid var(--border-color); padding: 15px 24px; display: flex; justify-content: space-between; align-items: center; }
         .panel { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         .kpi-value { font-family: 'JetBrains Mono', monospace; font-size: 1.8rem; font-weight: 700; color: #fff; }
-        .table-custom { color: #cbd5e1; font-size: 0.85rem; margin: 0; }
-        .table-custom th { color: #94a3b8; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; border-bottom: 1px solid var(--border-color); background: transparent; }
-        .table-custom td { border-bottom: 1px solid var(--border-color); background: transparent; vertical-align: middle; }
+        
+        /* Ajuste na tabela de Logs */
+        .table-custom { color: #f8f9fa; font-size: 0.85rem; margin: 0; }
+        .table-custom th { color: #ffffff; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; border-bottom: 1px solid #475569; background: transparent; }
+        .table-custom td { border-bottom: 1px solid #334155; background: transparent; vertical-align: middle; color: #e2e8f0; }
     </style>
 </head>
 <body>
@@ -61,7 +70,6 @@
 </div>
 
 <script>
-    // Gráfico Fixo Simulado de Receita Semanal para dar cara de ERP BI
     const ctxFin = document.getElementById('chartFinanceiro').getContext('2d');
     new Chart(ctxFin, {
         type: 'bar',
@@ -78,11 +86,11 @@
         document.getElementById('desp').innerText = data.kpi_financeiro.desperdicio;
 
         document.getElementById('tabela-estoque').innerHTML = data.estoque.map(e => `
-            <tr><td>${e.item}</td><td class="text-info">${e.qtd}</td><td><span class="badge ${e.status === 'OK' ? 'bg-success' : 'bg-danger'}">${e.status}</span></td></tr>
+            <tr><td style="color: #f8f9fa;">${e.item}</td><td class="text-info">${e.qtd}</td><td><span class="badge ${e.status === 'OK' ? 'bg-success' : 'bg-danger'}">${e.status}</span></td></tr>
         `).join('');
 
         document.getElementById('tabela-logs').innerHTML = data.logs.map(l => `
-            <tr><td class="text-muted">${l.data}</td><td class="text-primary">${l.usuario}</td><td>${l.acao}</td></tr>
+            <tr><td class="text-muted">${l.data}</td><td class="text-primary">${l.usuario}</td><td style="color: #e2e8f0;">${l.acao}</td></tr>
         `).join('');
     }, 4000);
 </script>
