@@ -1,7 +1,5 @@
 import os
 import random
-import threading
-import time
 from datetime import datetime
 from flask import Flask, request, jsonify, session, render_template, redirect
 from flask_sqlalchemy import SQLAlchemy
@@ -13,83 +11,16 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "chave_super_secreta")
-db_url = os.getenv("DATABASE_URL", "sqlite:///banco.db")
+db_url = os.getenv("DATABASE_URL")
 if db_url and db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
 db = SQLAlchemy(app)
 
 # ==========================================
-# 1. ESTADO GLOBAL DA FÁBRICA (MEMÓRIA)
-# ==========================================
-limites = {"temp": 185.0, "pressao": 5.0, "vazao": 120.0}
-
-fabrica = {
-    # Variáveis SCADA
-    "temp": 180.0, "pressao": 4.8, "vazao": 125.0,
-    "alarme_ativo": False,
-    
-    # Variáveis MES
-    "pecas": 1200, "oee": 85.0,
-    "maq1_status": "Rodando", "maq1_cor": "success",
-    
-    # Variáveis ERP
-    "faturamento": 85000.0, "desperdicio": 340.0
-}
-
-# ==========================================
-# 2. MOTOR DA FÁBRICA (THREAD DE INTEGRAÇÃO)
-# ==========================================
-def motor_simulacao():
-    """Roda em segundo plano simulando a física da fábrica e a integração"""
-    global fabrica, limites
-    
-    while True:
-        # 1. Simula a flutuação natural dos sensores (SCADA)
-        fabrica["temp"] += random.uniform(-0.5, 0.6)
-        fabrica["pressao"] += random.uniform(-0.05, 0.05)
-        fabrica["vazao"] += random.uniform(-1.0, 1.0)
-
-        # Evita que os valores fujam da realidade
-        if fabrica["temp"] < 170: fabrica["temp"] = 170
-        if fabrica["pressao"] < 4.0: fabrica["pressao"] = 4.0
-        
-        # 2. Verifica se houve estouro de limite (SCADA afeta o resto)
-        fabrica["alarme_ativo"] = fabrica["temp"] > limites["temp"] or fabrica["pressao"] > limites["pressao"]
-        
-        if fabrica["alarme_ativo"]:
-            # EFEITO DOMINÓ SE HOUVER ALARME NO SCADA:
-            # MES: Máquina para, OEE cai
-            fabrica["maq1_status"] = "Alarme SCADA"
-            fabrica["maq1_cor"] = "danger"
-            if fabrica["oee"] > 30.0: fabrica["oee"] -= 0.5 
-            
-            # ERP: Faturamento para, Desperdício dispara
-            fabrica["desperdicio"] += 25.5 
-            
-        else:
-            # PRODUÇÃO NORMAL:
-            # MES: Produzindo peças, OEE sobe
-            fabrica["maq1_status"] = "Rodando"
-            fabrica["maq1_cor"] = "success"
-            fabrica["pecas"] += 1
-            if fabrica["oee"] < 95.0: fabrica["oee"] += 0.1
-            
-            # ERP: Faturamento subindo, Desperdício estável
-            fabrica["faturamento"] += 15.0 
-            
-        time.sleep(2) # Atualiza a fábrica a cada 2 segundos
-
-# Inicia o motor em segundo plano
-thread_fabrica = threading.Thread(target=motor_simulacao, daemon=True)
-thread_fabrica.start()
-
-
-# ==========================================
-# 3. BANCO DE DADOS E AUTENTICAÇÃO
+# MODELOS DE BANCO DE DADOS
 # ==========================================
 class User(db.Model):
     __tablename__ = 'users'
@@ -105,26 +36,38 @@ class AuditLog(db.Model):
     usuario = db.Column(db.String(50), nullable=False)
     data_hora = db.Column(db.DateTime, default=datetime.now)
 
+# NOVA TABELA: Memória de Estado da Fábrica (Sincroniza SCADA, MES e ERP)
+class FabricaState(db.Model):
+    __tablename__ = 'fabrica_state'
+    id = db.Column(db.Integer, primary_key=True)
+    temp = db.Column(db.Float, default=180.0)
+    pressao = db.Column(db.Float, default=4.8)
+    vazao = db.Column(db.Float, default=125.0)
+    limite_temp = db.Column(db.Float, default=185.0)
+    limite_pressao = db.Column(db.Float, default=5.0)
+    limite_vazao = db.Column(db.Float, default=120.0)
+    pecas = db.Column(db.Integer, default=1200)
+    oee = db.Column(db.Float, default=85.0)
+    faturamento = db.Column(db.Float, default=85000.0)
+    desperdicio = db.Column(db.Float, default=340.0)
+
 def requer_perfil(perfis_permitidos):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if 'username' not in session: return redirect('/') 
-            if session.get('role') not in perfis_permitidos:
-                registrar_log(f"Tentativa de acesso bloqueado: {request.path}")
-                return "Acesso Negado", 403
+            if session.get('role') not in perfis_permitidos: return "Acesso Negado", 403
             return f(*args, **kwargs)
         return decorated_function
     return decorator
 
 def registrar_log(acao):
     usuario = session.get('username', 'Sistema')
-    novo_log = AuditLog(acao=acao, usuario=usuario)
-    db.session.add(novo_log)
+    db.session.add(AuditLog(acao=acao, usuario=usuario))
     db.session.commit()
 
 # ==========================================
-# 4. ROTAS DO FRONT-END
+# ROTAS PÁGINAS
 # ==========================================
 @app.route('/')
 def pagina_login(): return render_template('login.html')
@@ -159,80 +102,108 @@ def logout():
     return redirect('/')
 
 # ==========================================
-# 5. APIs DE DADOS (AGORA INTEGRADAS!)
+# MOTOR DE INTEGRAÇÃO EM TEMPO REAL
 # ==========================================
 @app.route('/api/monitoramento', methods=['GET'])
 @requer_perfil(['Operador'])
 def monitoramento():
-    global fabrica, limites
+    state = FabricaState.query.first()
+    
+    # 1. Simula oscilação dos sensores
+    state.temp += random.uniform(-0.6, 0.7)
+    state.pressao += random.uniform(-0.05, 0.06)
+    state.vazao += random.uniform(-0.8, 1.2)
+    
+    # Travas de física básica
+    if state.temp < 170: state.temp = 170.0
+    if state.pressao < 4.0: state.pressao = 4.0
+    if state.vazao > 135: state.vazao = 135.0
+
+    # 2. Verifica Alarmes INDIVIDUAIS
+    al_temp = state.temp > state.limite_temp
+    al_pressao = state.pressao > state.limite_pressao
+    al_vazao = state.vazao < state.limite_vazao
+    alarme_geral = al_temp or al_pressao or al_vazao
+
+    # 3. LÓGICA DE INTEGRAÇÃO (Afeta o resto da fábrica)
+    if alarme_geral:
+        state.oee = max(30.0, state.oee - 0.3)
+        state.desperdicio += 15.0
+    else:
+        state.pecas += 1
+        state.oee = min(95.0, state.oee + 0.05)
+        state.faturamento += 10.0
+
+    db.session.commit()
+
     return jsonify({
-        "temp": {"valor": fabrica["temp"], "limite": limites["temp"], "alarme": fabrica["temp"] > limites["temp"]},
-        "pressao": {"valor": fabrica["pressao"], "limite": limites["pressao"], "alarme": fabrica["pressao"] > limites["pressao"]},
-        "vazao": {"valor": fabrica["vazao"], "limite": limites["vazao"], "alarme": fabrica["vazao"] < limites["vazao"]}
+        "temp": {"valor": state.temp, "limite": state.limite_temp, "alarme": al_temp},
+        "pressao": {"valor": state.pressao, "limite": state.limite_pressao, "alarme": al_pressao},
+        "vazao": {"valor": state.vazao, "limite": state.limite_vazao, "alarme": al_vazao}
     })
 
 @app.route('/api/setpoint', methods=['POST'])
 @requer_perfil(['Operador'])
 def setpoint():
-    global limites
     dados = request.get_json()
     variavel = dados.get('variavel')
     valor = float(dados.get('valor'))
     
-    if variavel in limites:
-        limites[variavel] = valor
-        registrar_log(f"Operador alterou Setpoint {variavel.upper()} para {valor}")
-        return jsonify({"mensagem": "Sucesso"})
-    return jsonify({"erro": "Variável não encontrada"}), 400
+    state = FabricaState.query.first()
+    if variavel == 'temp': state.limite_temp = valor
+    elif variavel == 'pressao': state.limite_pressao = valor
+    elif variavel == 'vazao': state.limite_vazao = valor
+    
+    registrar_log(f"Operador alterou Setpoint {variavel.upper()} para {valor}")
+    db.session.commit()
+    return jsonify({"mensagem": "Sucesso"})
 
 @app.route('/api/mes', methods=['GET'])
 @requer_perfil(['Supervisor'])
 def dados_mes():
-    global fabrica
+    state = FabricaState.query.first()
     
-    # Gerando avisos dinâmicos baseados no estado real
-    avisos = []
-    if fabrica["alarme_ativo"]: avisos.append("ATENÇÃO: Produção interrompida por alarme na Caldeira!")
-    else: avisos.append("Produção operando em parâmetros normais.")
-        
+    # Se há alarme no banco, a fábrica para
+    alarme_geral = state.temp > state.limite_temp or state.pressao > state.limite_pressao or state.vazao < state.limite_vazao
+    
+    status_maq = "ERRO - PARADA" if alarme_geral else "RODANDO NORMAL"
+    cor_maq = "danger" if alarme_geral else "success"
+    
     return jsonify({
-        "oee": fabrica["oee"],
-        "pecas_produzidas": fabrica["pecas"],
-        "meta": 2000,
+        "oee": state.oee, "pecas_produzidas": state.pecas, "meta": 2000,
+        "alarme_ativo": alarme_geral,
         "maquinas": [
-            {"nome": "Centro de Usinagem CNC", "status": fabrica["maq1_status"], "cor": fabrica["maq1_cor"]},
-            {"nome": "Célula de Solda Robótica", "status": "Rodando", "cor": "success"},
-            {"nome": "Esteira de Inspeção Ótica", "status": "Rodando", "cor": "success"}
-        ],
-        "avisos": avisos
+            {"nome": "Fresa CNC 5-Eixos", "status": status_maq, "cor": cor_maq},
+            {"nome": "Braço Robótico KUKA", "status": status_maq, "cor": cor_maq},
+            {"nome": "Esteira de Inspeção", "status": status_maq, "cor": cor_maq}
+        ]
     })
 
 @app.route('/api/erp', methods=['GET'])
 @requer_perfil(['Engenharia'])
 def dados_erp():
-    global fabrica
+    state = FabricaState.query.first()
     logs = AuditLog.query.order_by(AuditLog.id.desc()).limit(8).all()
     lista_logs = [{"data": l.data_hora.strftime('%H:%M:%S'), "usuario": l.usuario, "acao": l.acao} for l in logs]
     
-    # Formata como dinheiro brasileiro
-    fat_formatado = f"R$ {fabrica['faturamento']:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-    desp_formatado = f"R$ {fabrica['desperdicio']:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-
     return jsonify({
         "estoque": [
-            {"item": "Aço Inox (Chapa)", "qtd": "4.2 Ton", "status": "OK"},
-            {"item": "Parafusos Sextavados", "qtd": "15.000 un", "status": "Baixo"}
+            {"item": "Aço Inox", "qtd": "4.2 Ton", "status": "OK"},
+            {"item": "Óleo Lubrificante", "qtd": "250 L", "status": "Baixo se Alarme"}
         ],
         "kpi_financeiro": {
             "custo_energia": "R$ 1.450,00", 
-            "faturamento": fat_formatado, 
-            "desperdicio": desp_formatado
+            "faturamento": f"R$ {state.faturamento:,.2f}".replace(',', 'v').replace('.', ',').replace('v', '.'), 
+            "desperdicio": f"R$ {state.desperdicio:,.2f}".replace(',', 'v').replace('.', ',').replace('v', '.')
         },
         "logs": lista_logs
     })
 
 if __name__ == '__main__':
     with app.app_context(): 
-        db.create_all() 
-    # use_reloader=False evita que a thread rode duplicada no modo debug do Flask
-    app.run(debug=True, use_reloader=False)
+        db.create_all()
+        # Garante que sempre exista 1 linha de estado no banco
+        if not FabricaState.query.first():
+            db.session.add(FabricaState())
+            db.session.commit()
+    app.run(debug=True)
