@@ -88,7 +88,7 @@ def registrar_log(acao):
     db.session.commit()
 
 # ==========================================
-# ROTAS DE PÁGINAS E LOGIN (ANTI-BRUTE FORCE)
+# ROTAS DE PÁGINAS E LOGIN
 # ==========================================
 @app.route('/')
 def pagina_login(): return render_template('login.html')
@@ -111,25 +111,33 @@ def login():
     username = data.get('username')
     ip_address = request.remote_addr or "127.0.0.1"
     
-    # PROTEÇÃO: Bloqueio por Brute Force (Mais de 3 erros em 5 minutos)
-    limite_tempo = datetime.now() - timedelta(minutes=5)
-    tentativas = FailedLogin.query.filter(FailedLogin.ip_address == ip_address, FailedLogin.attempt_time >= limite_tempo).count()
+    # PROTEÇÃO REDUZIDA (TESTES): 5 erros num minuto geram bloqueio
+    limite_tempo = datetime.now() - timedelta(minutes=1)
+    tentativas = FailedLogin.query.filter(
+        FailedLogin.ip_address == ip_address, 
+        FailedLogin.attempt_time >= limite_tempo
+    ).count()
     
-    if tentativas >= 3:
-        registrar_log(f"INCIDENTE DE SEGURANÇA: Bloqueio de IP {ip_address}")
-        return jsonify({"erro": "IP bloqueado por múltiplas falhas. Tente em 5 min.", "bloqueado": True}), 403
+    if tentativas >= 5:
+        return jsonify({"erro": "Múltiplas tentativas falhas. IP bloqueado por 1 minuto.", "bloqueado": True}), 403
 
     user = User.query.filter_by(username=username).first()
+    
     if user and check_password_hash(user.password_hash, data.get('password')):
         session['username'] = user.username
         session['role'] = user.role
         registrar_log(f"Login efetuado com sucesso ({user.role})")
+        
+        # OBRIGATÓRIO: Limpa as falhas se acertou a password
         FailedLogin.query.filter_by(ip_address=ip_address).delete()
         db.session.commit()
+        
         destinos = {'Operador': '/scada', 'Supervisor': '/mes', 'Engenharia': '/erp'}
         return jsonify({"mensagem": "Sucesso", "redirect": destinos.get(user.role, '/')})
     
-    db.session.add(FailedLogin(username=username, ip_address=ip_address))
+    # Regista o erro se falhar
+    novo_erro = FailedLogin(username=username, ip_address=ip_address, attempt_time=datetime.now())
+    db.session.add(novo_erro)
     db.session.commit()
     return jsonify({"erro": "Credenciais inválidas"}), 401
 
@@ -146,7 +154,7 @@ def rodar_motor_fabrica(state):
     if state.ultima_atualizacao and (agora - state.ultima_atualizacao).total_seconds() < 2.0:
         return state
 
-    # Simulação normal (oscilação)
+    # Simulação de oscilação
     state.temp += random.uniform(-0.6, 0.7)
     state.pressao += random.uniform(-0.05, 0.06)
     state.vazao += random.uniform(-0.8, 1.2)
@@ -157,7 +165,7 @@ def rodar_motor_fabrica(state):
 
     state.saude_maquina = max(0.0, state.saude_maquina - 0.05)
     
-    # Simulação de variação de Qualidade
+    # Qualidade
     state.taxa_defeitos += random.uniform(-0.1, 0.1)
     if state.taxa_defeitos < 0.5: state.taxa_defeitos = 0.5
     if state.taxa_defeitos > 8.0: state.taxa_defeitos = 8.0
@@ -185,14 +193,11 @@ def rodar_motor_fabrica(state):
 @requer_perfil(['Operador'])
 def monitoramento():
     state = rodar_motor_fabrica(get_estado_fabrica())
-    logs = AuditLog.query.order_by(AuditLog.id.desc()).limit(6).all()
-    lista_logs = [{"hora": l.data_hora.strftime('%H:%M:%S'), "acao": l.acao} for l in logs]
     
     payload = {
         "temp": {"valor": state.temp, "limite": state.limite_temp, "alarme": state.temp > state.limite_temp},
         "pressao": {"valor": state.pressao, "limite": state.limite_pressao, "alarme": state.pressao > state.limite_pressao},
-        "vazao": {"valor": state.vazao, "limite": state.limite_vazao, "alarme": state.vazao < state.limite_vazao},
-        "logs": lista_logs
+        "vazao": {"valor": state.vazao, "limite": state.limite_vazao, "alarme": state.vazao < state.limite_vazao}
     }
     
     # ASSINATURA ANTI-MITM
@@ -227,7 +232,6 @@ def dados_erp():
     state = rodar_motor_fabrica(get_estado_fabrica())
     logs = AuditLog.query.order_by(AuditLog.id.desc()).limit(8).all()
     
-    # CÁLCULO DA POSTURA DE SEGURANÇA
     score = 100
     if state.saude_maquina < 40: score -= 20
     falhas_login = FailedLogin.query.filter(FailedLogin.attempt_time >= (datetime.now() - timedelta(minutes=60))).count()
