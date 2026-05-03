@@ -29,12 +29,32 @@
 </div>
 <script>
     async function fazerLogin() {
-        const res = await fetch('/login', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: document.getElementById('user').value, password: document.getElementById('pass').value })
-        });
-        const data = await res.json();
-        if(res.ok) window.location.href = data.redirect; else document.getElementById('msg-erro').innerText = "Acesso Negado.";
+        // Limpa mensagens de erro antigas ao tentar novamente
+        document.getElementById('msg-erro').innerText = ""; 
+        
+        try {
+            const res = await fetch('/login', {
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    username: document.getElementById('user').value, 
+                    password: document.getElementById('pass').value 
+                })
+            });
+            
+            const data = await res.json();
+            
+            if(res.ok) {
+                // Se tudo correu bem, redireciona para a página correta
+                window.location.href = data.redirect; 
+            } else {
+                // AGORA LÊ A MENSAGEM DO BACKEND: "data.erro"
+                // Se por acaso o backend não mandar mensagem, usa "Acesso Negado." como padrão
+                document.getElementById('msg-erro').innerText = data.erro || "Acesso Negado.";
+            }
+        } catch(e) {
+            document.getElementById('msg-erro').innerText = "Erro ao conectar com o servidor.";
+        }
     }
 </script>
 </body>
