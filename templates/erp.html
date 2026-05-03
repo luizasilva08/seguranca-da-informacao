@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
     <title>ERP | Dashboard Executivo</title>
@@ -10,71 +10,87 @@
     <style>
         :root { --bg-dark: #0f172a; --panel-bg: #1e293b; --border-color: #334155; }
         body { background-color: var(--bg-dark); color: #f8fafc; font-family: 'Inter', sans-serif; }
-        
-        /* CORREÇÃO DAS CORES DE TEXTO NO TEMA ESCURO */
         h1, h2, h3, h4, h5, h6, p, span, div { color: #f8f9fa; }
-        .text-muted { color: #94a3b8 !important; }
-        .text-secondary { color: #cbd5e1 !important; }
-        .text-primary { color: #38bdf8 !important; font-weight: 600; } /* Azul brilhante para os utilizadores */
-
+        .text-muted { color: #94a3b8 !important; } .text-secondary { color: #cbd5e1 !important; }
+        .text-primary { color: #38bdf8 !important; }
+        
         .topbar { background: #0f172a; border-bottom: 1px solid var(--border-color); padding: 15px 24px; display: flex; justify-content: space-between; align-items: center; }
         .panel { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         .kpi-value { font-family: 'JetBrains Mono', monospace; font-size: 1.8rem; font-weight: 700; color: #fff; }
         
-        /* Ajuste na tabela de Logs */
         .table-custom { color: #f8f9fa; font-size: 0.85rem; margin: 0; }
-        .table-custom th { color: #ffffff; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; border-bottom: 1px solid #475569; background: transparent; }
-        .table-custom td { border-bottom: 1px solid #334155; background: transparent; vertical-align: middle; color: #e2e8f0; }
+        .table-custom th { color: #ffffff; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; border-bottom: 1px solid #475569; }
+        .table-custom td { border-bottom: 1px solid #334155; color: #e2e8f0; vertical-align: middle; }
     </style>
 </head>
 <body>
 
 <div class="topbar mb-4">
-    <div class="fw-bold text-success"><i class="bi bi-buildings me-2"></i>ERP | DASHBOARD EXECUTIVO</div>
+    <div class="fw-bold text-success"><i class="bi bi-buildings me-2"></i>ERP | VISÃO EXECUTIVA E COMPLIANCE</div>
     <a href="/logout" class="btn btn-outline-danger btn-sm"><i class="bi bi-power"></i> Sair</a>
 </div>
 
 <div class="container-fluid px-4">
     <div class="row g-3 mb-4">
-        <div class="col-md-4"><div class="panel border-bottom border-4 border-info"><div class="text-secondary small fw-bold mb-1">PREVISÃO DE FATURAMENTO</div><div id="fat" class="kpi-value text-info">--</div></div></div>
+        <div class="col-md-4"><div class="panel border-bottom border-4 border-info"><div class="text-secondary small fw-bold mb-1">PREVISÃO DE FATURAÇÃO</div><div id="fat" class="kpi-value text-info">--</div></div></div>
         <div class="col-md-4"><div class="panel border-bottom border-4 border-danger"><div class="text-secondary small fw-bold mb-1">CUSTO ENERGÉTICO (HOJE)</div><div id="custo" class="kpi-value text-danger">--</div></div></div>
         <div class="col-md-4"><div class="panel border-bottom border-4 border-warning"><div class="text-secondary small fw-bold mb-1">DESPERDÍCIO ESTIMADO</div><div id="desp" class="kpi-value text-warning">--</div></div></div>
     </div>
 
     <div class="row g-4">
-        <div class="col-xl-6">
-            <div class="panel mb-4">
-                <h6 class="text-secondary mb-3"><i class="bi bi-bar-chart-line"></i> Análise de Receita (D-7)</h6>
-                <div style="height: 200px;"><canvas id="chartFinanceiro"></canvas></div>
+        <div class="col-md-4">
+            <div class="panel border-success h-100">
+                <h6 class="text-success mb-3"><i class="bi bi-box-seam"></i> RASTREABILIDADE DE LOTE</h6>
+                <div class="mb-3">
+                    <small class="text-secondary">Lote Atual de Produção:</small>
+                    <h4 id="lote-atual" class="text-white mt-1" style="font-family: 'JetBrains Mono', monospace;">--</h4>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-secondary small">Data Produção:</span>
+                    <span id="data-lote" class="text-white small">--/--/----</span>
+                </div>
+                <div class="d-flex justify-content-between mb-4">
+                    <span class="text-secondary small">Status do Lote:</span>
+                    <span class="badge bg-success">LIBERADO</span>
+                </div>
+                <button onclick="verificarLote()" class="btn btn-outline-success w-100 btn-sm">
+                    <i class="bi bi-shield-check"></i> Verificar Assinatura Digital
+                </button>
+                <div id="resultado-assinatura" class="mt-3 text-center small text-info" style="font-family: monospace; word-break: break-all;"></div>
             </div>
-            
-            <div class="panel">
-                <h6 class="text-secondary mb-3"><i class="bi bi-box-seam"></i> Inventário de Insumos</h6>
-                <table class="table table-custom">
-                    <thead><tr><th>Material</th><th>Quantidade</th><th>Status</th></tr></thead>
-                    <tbody id="tabela-estoque"></tbody>
-                </table>
+        </div>
+
+        <div class="col-md-4">
+            <div class="panel h-100 text-center">
+                <h6 class="text-secondary mb-3"><i class="bi bi-shield-lock"></i> POSTURA DE SEGURANÇA</h6>
+                <div style="height: 150px; position: relative; margin: 0 auto;">
+                    <canvas id="chartSeguranca"></canvas>
+                </div>
+                <div id="status-seg" class="mt-3 fw-bold fs-4">--/100</div>
+                <div class="small mt-2 text-warning">Ataques bloqueados (1h): <span id="falhas" class="fw-bold text-white">0</span></div>
             </div>
         </div>
         
-        <div class="col-xl-6">
+        <div class="col-md-4">
             <div class="panel h-100">
-                <h6 class="text-secondary mb-3"><i class="bi bi-shield-lock"></i> Auditoria de Sistema (Logs em Tempo Real)</h6>
-                <table class="table table-custom">
-                    <thead><tr><th>Data/Hora</th><th>Usuário</th><th>Ação</th></tr></thead>
-                    <tbody id="tabela-logs" style="font-family: 'JetBrains Mono', monospace;"></tbody>
-                </table>
+                <h6 class="text-secondary mb-3"><i class="bi bi-list-check"></i> AUDITORIA DO SISTEMA</h6>
+                <div style="max-height: 220px; overflow-y: auto;">
+                    <table class="table table-custom">
+                        <thead><tr><th>Hora</th><th>Utilizador</th><th>Ação</th></tr></thead>
+                        <tbody id="tabela-logs" style="font-family: 'JetBrains Mono', monospace;"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    const ctxFin = document.getElementById('chartFinanceiro').getContext('2d');
-    new Chart(ctxFin, {
-        type: 'bar',
-        data: { labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'], datasets: [{ label: 'Receita (k R$)', data: [45, 52, 38, 65, 80, 20, 15], backgroundColor: '#10b981', borderRadius: 4 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#334155' } }, x: { grid: { display: false } } } }
+    const ctx = document.getElementById('chartSeguranca').getContext('2d');
+    const chartRisco = new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels: ['Saúde (Score)', 'Risco'], datasets: [{ data: [100, 0], backgroundColor: ['#10b981', '#ef4444'], borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '80%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
     });
 
     setInterval(async () => {
@@ -85,14 +101,38 @@
         document.getElementById('custo').innerText = data.kpi_financeiro.custo_energia;
         document.getElementById('desp').innerText = data.kpi_financeiro.desperdicio;
 
-        document.getElementById('tabela-estoque').innerHTML = data.estoque.map(e => `
-            <tr><td style="color: #f8f9fa;">${e.item}</td><td class="text-info">${e.qtd}</td><td><span class="badge ${e.status === 'OK' ? 'bg-success' : 'bg-danger'}">${e.status}</span></td></tr>
-        `).join('');
+        document.getElementById('lote-atual').innerText = data.lote_atual;
+        document.getElementById('data-lote').innerText = data.data_lote;
 
+        // Atualiza a Postura de Segurança
+        const score = data.seguranca_score;
+        chartRisco.data.datasets[0].data = [score, 100 - score];
+        if(score > 80) chartRisco.data.datasets[0].backgroundColor[0] = '#10b981';
+        else if(score > 50) chartRisco.data.datasets[0].backgroundColor[0] = '#f59e0b';
+        else chartRisco.data.datasets[0].backgroundColor[0] = '#ef4444';
+        chartRisco.update();
+
+        document.getElementById('status-seg').innerText = score + " / 100";
+        document.getElementById('status-seg').style.color = chartRisco.data.datasets[0].backgroundColor[0];
+        document.getElementById('falhas').innerText = data.falhas_login;
+
+        // Atualiza a Tabela de Logs
         document.getElementById('tabela-logs').innerHTML = data.logs.map(l => `
             <tr><td class="text-muted">${l.data}</td><td class="text-primary">${l.usuario}</td><td style="color: #e2e8f0;">${l.acao}</td></tr>
         `).join('');
     }, 4000);
+
+    async function verificarLote() {
+        const btn = document.getElementById('resultado-assinatura');
+        btn.innerText = "A verificar chaves na ledger interna...";
+        
+        const res = await fetch('/api/verificar_lote', { method: 'POST' });
+        const data = await res.json();
+        
+        setTimeout(() => {
+            btn.innerHTML = `<span class="text-success fw-bold">STATUS: ${data.status}</span><br>HASH: ${data.assinatura}...`;
+        }, 1200);
+    }
 </script>
 </body>
 </html>
