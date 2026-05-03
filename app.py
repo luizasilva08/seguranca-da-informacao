@@ -118,7 +118,7 @@ def login():
         FailedLogin.attempt_time >= limite_tempo
     ).count()
     
-    if tentativas >= 5:
+    if tentativas >= 3:
         return jsonify({"erro": "Múltiplas tentativas falhas. IP bloqueado por 1 minuto.", "bloqueado": True}), 403
 
     user = User.query.filter_by(username=username).first()
