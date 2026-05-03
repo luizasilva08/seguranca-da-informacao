@@ -2,50 +2,58 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>ERP - Visão Corporativa</title>
+    <title>ERP | Dashboard Executivo</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .navbar-custom { background: #0b1120; border-bottom: 1px solid #1e293b; }
-        .card-custom { background: #1e293b; border: 1px solid #334155; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); }
-        .table-dark-custom { background-color: transparent; color: #cbd5e1; }
-        .table-dark-custom th { color: #94a3b8; font-weight: 500; border-bottom: 1px solid #334155; }
-        .table-dark-custom td { border-bottom: 1px solid #334155; }
-        .kpi-value { font-size: 1.8rem; font-weight: bold; }
+        :root { --bg-dark: #0f172a; --panel-bg: #1e293b; --border-color: #334155; }
+        body { background-color: var(--bg-dark); color: #f8fafc; font-family: 'Inter', sans-serif; }
+        .topbar { background: #0f172a; border-bottom: 1px solid var(--border-color); padding: 15px 24px; display: flex; justify-content: space-between; align-items: center; }
+        .panel { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .kpi-value { font-family: 'JetBrains Mono', monospace; font-size: 1.8rem; font-weight: 700; color: #fff; }
+        .table-custom { color: #cbd5e1; font-size: 0.85rem; margin: 0; }
+        .table-custom th { color: #94a3b8; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; border-bottom: 1px solid var(--border-color); background: transparent; }
+        .table-custom td { border-bottom: 1px solid var(--border-color); background: transparent; vertical-align: middle; }
     </style>
 </head>
 <body>
-<nav class="navbar navbar-custom py-3 mb-4">
-    <div class="container-fluid px-4">
-        <span class="navbar-brand fw-bold" style="color: #10b981;">🏢 ERP Corporativo & Auditoria</span>
-        <div><span class="badge bg-secondary me-3">Perfil: Engenharia/Diretoria</span><a href="/logout" class="btn btn-outline-danger btn-sm">Encerrar Sessão</a></div>
-    </div>
-</nav>
+
+<div class="topbar mb-4">
+    <div class="fw-bold text-success"><i class="bi bi-buildings me-2"></i>ERP | DASHBOARD EXECUTIVO</div>
+    <a href="/logout" class="btn btn-outline-danger btn-sm"><i class="bi bi-power"></i> Sair</a>
+</div>
 
 <div class="container-fluid px-4">
-    <div class="row mb-4">
-        <div class="col-md-4"><div class="card card-custom p-4 border-start border-4 border-info"><span class="text-muted small">PREVISÃO DE FATURAMENTO</span><div id="fat" class="kpi-value text-info">--</div></div></div>
-        <div class="col-md-4"><div class="card card-custom p-4 border-start border-4 border-danger"><span class="text-muted small">CUSTO OPERACIONAL (ENERGIA)</span><div id="custo" class="kpi-value text-danger">--</div></div></div>
-        <div class="col-md-4"><div class="card card-custom p-4 border-start border-4 border-warning"><span class="text-muted small">DESPERDÍCIO ESTIMADO</span><div id="desp" class="kpi-value text-warning">--</div></div></div>
+    <div class="row g-3 mb-4">
+        <div class="col-md-4"><div class="panel border-bottom border-4 border-info"><div class="text-secondary small fw-bold mb-1">PREVISÃO DE FATURAMENTO</div><div id="fat" class="kpi-value text-info">--</div></div></div>
+        <div class="col-md-4"><div class="panel border-bottom border-4 border-danger"><div class="text-secondary small fw-bold mb-1">CUSTO ENERGÉTICO (HOJE)</div><div id="custo" class="kpi-value text-danger">--</div></div></div>
+        <div class="col-md-4"><div class="panel border-bottom border-4 border-warning"><div class="text-secondary small fw-bold mb-1">DESPERDÍCIO ESTIMADO</div><div id="desp" class="kpi-value text-warning">--</div></div></div>
     </div>
 
-    <div class="row">
-        <div class="col-md-5">
-            <div class="card card-custom p-4 h-100">
-                <h5 class="text-secondary mb-4">Inventário de Matéria-Prima</h5>
-                <table class="table table-dark-custom">
-                    <thead><tr><th>Item</th><th>Quantidade</th><th>Status</th></tr></thead>
+    <div class="row g-4">
+        <div class="col-xl-6">
+            <div class="panel mb-4">
+                <h6 class="text-secondary mb-3"><i class="bi bi-bar-chart-line"></i> Análise de Receita (D-7)</h6>
+                <div style="height: 200px;"><canvas id="chartFinanceiro"></canvas></div>
+            </div>
+            
+            <div class="panel">
+                <h6 class="text-secondary mb-3"><i class="bi bi-box-seam"></i> Inventário de Insumos</h6>
+                <table class="table table-custom">
+                    <thead><tr><th>Material</th><th>Quantidade</th><th>Status</th></tr></thead>
                     <tbody id="tabela-estoque"></tbody>
                 </table>
             </div>
         </div>
         
-        <div class="col-md-7">
-            <div class="card card-custom p-4 h-100">
-                <h5 class="text-secondary mb-4">Logs de Segurança e Auditoria de TI</h5>
-                <table class="table table-dark-custom table-sm" style="font-size: 0.85rem;">
-                    <thead><tr><th>Data/Hora</th><th>Usuário</th><th>Ação Registrada</th></tr></thead>
-                    <tbody id="tabela-logs"></tbody>
+        <div class="col-xl-6">
+            <div class="panel h-100">
+                <h6 class="text-secondary mb-3"><i class="bi bi-shield-lock"></i> Auditoria de Sistema (Logs em Tempo Real)</h6>
+                <table class="table table-custom">
+                    <thead><tr><th>Data/Hora</th><th>Usuário</th><th>Ação</th></tr></thead>
+                    <tbody id="tabela-logs" style="font-family: 'JetBrains Mono', monospace;"></tbody>
                 </table>
             </div>
         </div>
@@ -53,6 +61,14 @@
 </div>
 
 <script>
+    // Gráfico Fixo Simulado de Receita Semanal para dar cara de ERP BI
+    const ctxFin = document.getElementById('chartFinanceiro').getContext('2d');
+    new Chart(ctxFin, {
+        type: 'bar',
+        data: { labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'], datasets: [{ label: 'Receita (k R$)', data: [45, 52, 38, 65, 80, 20, 15], backgroundColor: '#10b981', borderRadius: 4 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#334155' } }, x: { grid: { display: false } } } }
+    });
+
     setInterval(async () => {
         const res = await fetch('/api/erp');
         const data = await res.json();
@@ -62,11 +78,11 @@
         document.getElementById('desp').innerText = data.kpi_financeiro.desperdicio;
 
         document.getElementById('tabela-estoque').innerHTML = data.estoque.map(e => `
-            <tr><td>${e.item}</td><td>${e.qtd}</td><td><span class="badge ${e.status === 'OK' ? 'bg-success' : 'bg-danger'}">${e.status}</span></td></tr>
+            <tr><td>${e.item}</td><td class="text-info">${e.qtd}</td><td><span class="badge ${e.status === 'OK' ? 'bg-success' : 'bg-danger'}">${e.status}</span></td></tr>
         `).join('');
 
         document.getElementById('tabela-logs').innerHTML = data.logs.map(l => `
-            <tr><td class="text-muted">${l.data}</td><td class="text-info">${l.usuario}</td><td>${l.acao}</td></tr>
+            <tr><td class="text-muted">${l.data}</td><td class="text-primary">${l.usuario}</td><td>${l.acao}</td></tr>
         `).join('');
     }, 4000);
 </script>
