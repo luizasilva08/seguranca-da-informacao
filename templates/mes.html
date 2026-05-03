@@ -2,76 +2,85 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>MES | Layout da Fábrica</title>
+    <title>MES | Controle de Manufatura</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <style>
-        :root { --bg-dark: #070b14; --blueprint: #1e293b; }
+        :root { --bg-dark: #0b0f19; --panel-bg: #151b28; --border-color: #262f40; }
         body { background-color: var(--bg-dark); color: #f8fafc; font-family: 'Inter', sans-serif; }
-        .panel { background: #111827; border: 1px solid #1e293b; border-radius: 8px; padding: 15px; }
+        .data-value { font-family: 'JetBrains Mono', monospace; letter-spacing: -0.5px; }
+        .panel { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .panel-header { font-size: 0.8rem; text-transform: uppercase; color: #94a3b8; font-weight: 600; margin-bottom: 15px;}
         
-        /* O EFEITO REALISTA DE PLANTA BAIXA (BLUEPRINT) */
-        .blueprint-floor { 
-            background-color: #0b1120;
-            background-image: linear-gradient(rgba(30, 41, 59, 0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(30, 41, 59, 0.5) 1px, transparent 1px);
-            background-size: 30px 30px;
-            border: 2px solid #3b82f6; border-radius: 8px; padding: 30px; min-height: 450px; position: relative;
-        }
+        /* DESENHO DAS MÁQUINAS */
+        .maquina-desenho { background: #070a11; border: 2px solid #334155; border-radius: 10px; padding: 20px; text-align: center; position: relative; transition: all 0.3s;}
         
-        .agv-path { border: 2px dashed #475569; position: absolute; top: 100px; bottom: 100px; left: 50%; width: 2px; }
-        .agv-robot { position: absolute; width: 14px; height: 14px; background: #38bdf8; border-radius: 50%; left: -6px; top: 10%; box-shadow: 0 0 10px #38bdf8; animation: move-agv 8s linear infinite alternate; }
-        @keyframes move-agv { 0% { top: 10%; } 100% { top: 90%; } }
+        /* CNC / Engrenagens */
+        .gear-container { width: 60px; height: 60px; margin: 0 auto 15px; border-radius: 50%; border: 4px dashed #64748b; display: flex; align-items: center; justify-content: center; }
+        .gear-inner { width: 30px; height: 30px; background: #38bdf8; border-radius: 50%; box-shadow: 0 0 15px #38bdf8; }
+        .rodando .gear-container { animation: spin 4s linear infinite; border-color: #10b981; }
+        .rodando .gear-inner { background: #10b981; box-shadow: 0 0 15px #10b981;}
+        
+        /* Esteira / Rolamentos */
+        .conveyor { width: 100px; height: 20px; background: #334155; margin: 20px auto; border-radius: 10px; display: flex; justify-content: space-around; align-items: center; padding: 0 5px;}
+        .roller { width: 12px; height: 12px; background: #64748b; border-radius: 50%; }
+        .rodando .roller { background: #10b981; animation: bounce 0.5s infinite alternate; }
 
-        .machine-cell { background: #151b28; border: 2px solid #334155; border-radius: 6px; padding: 15px; position: absolute; text-align: center; width: 220px; transition: all 0.3s;}
-        .machine-cell h6 { font-size: 0.8rem; margin-bottom: 5px; font-weight: bold; color: #94a3b8; }
-        
-        /* Posições na Planta */
-        #cell-1 { top: 50px; left: 50px; }
-        #cell-2 { top: 250px; left: 50px; }
-        #cell-3 { top: 150px; right: 50px; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes bounce { to { transform: translateY(-3px); } }
 
-        /* Status LEDs */
-        .status-led { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-bottom: 5px; }
-        .state-success { border-color: #10b981; box-shadow: inset 0 0 15px rgba(16,185,129,0.2); } .state-success .status-led { background: #10b981; box-shadow: 0 0 10px #10b981; }
-        .state-warning { border-color: #f59e0b; } .state-warning .status-led { background: #f59e0b; box-shadow: 0 0 10px #f59e0b; }
-        .state-danger { border-color: #ef4444; box-shadow: inset 0 0 20px rgba(239,68,68,0.4); animation: piscar-maq 1s infinite;} .state-danger .status-led { background: #ef4444; }
-        .state-secondary { border-color: #475569; opacity: 0.7; } .state-secondary .status-led { background: #64748b; }
+        /* Estado de Alarme GERAL do MES */
+        .maquina-alarme { border-color: #ef4444; background: rgba(239, 68, 68, 0.05); }
+        .maquina-alarme .gear-container { border-color: #ef4444; animation: none; }
+        .maquina-alarme .gear-inner { background: #ef4444; box-shadow: 0 0 15px #ef4444; }
+        .maquina-alarme .roller { background: #ef4444; animation: none; }
         
-        @keyframes piscar-maq { 50% { border-color: #991b1b; } }
+        .tela-sirene { border: 2px solid #ef4444; animation: flash-bg 1s infinite; }
+        @keyframes flash-bg { 50% { background-color: rgba(239, 68, 68, 0.1); } }
     </style>
 </head>
 <body>
 
 <div class="container-fluid px-4 py-3">
     <div class="d-flex justify-content-between mb-3 border-bottom border-secondary pb-2">
-        <h5 class="text-warning m-0"><i class="bi bi-diagram-3"></i> MES - Planta Baixa Digital (Digital Twin)</h5>
+        <h5 class="text-warning m-0">📦 MES - Gestão de Produção e Equipamentos</h5>
         <a href="/logout" class="btn btn-outline-danger btn-sm">Sair</a>
     </div>
 
-    <div class="row g-4">
-        <div class="col-xl-9">
-            <div class="blueprint-floor">
-                <span class="badge bg-primary position-absolute top-0 start-0 m-3">ENTRADA MATÉRIA PRIMA</span>
-                <span class="badge bg-success position-absolute bottom-0 end-0 m-3">EXPEDIÇÃO (PRODUTO ACABADO)</span>
-                
-                <div class="agv-path"><div class="agv-robot"></div></div>
+    <div class="row g-3 mb-4">
+        <div class="col-md-4"><div class="panel text-center"><div class="panel-header">PRODUÇÃO (PEÇAS / META)</div><div class="data-value fs-2"><span id="pecas" class="text-success">--</span> / <span id="meta" class="text-muted">--</span></div></div></div>
+        <div class="col-md-4"><div class="panel text-center" id="painel-oee"><div class="panel-header">OEE GLOBAL (EFICIÊNCIA)</div><div class="data-value fs-2 text-warning" id="oee">--%</div></div></div>
+        <div class="col-md-4"><div class="panel text-center" id="painel-status"><div class="panel-header">STATUS DA LINHA</div><div class="data-value fs-3 text-info" id="status-linha">AGUARDANDO...</div></div></div>
+    </div>
 
-                <div id="cell-1" class="machine-cell"><div class="status-led"></div><h6>CARREGANDO...</h6></div>
-                <div id="cell-2" class="machine-cell"><div class="status-led"></div><h6>CARREGANDO...</h6></div>
-                <div id="cell-3" class="machine-cell"><div class="status-led"></div><h6>CARREGANDO...</h6></div>
+    <div class="panel h-100">
+        <div class="panel-header">CHÃO DE FÁBRICA - SUPERVISÃO DE MÁQUINAS</div>
+        <div class="row g-4" id="grid-maquinas">
+            
+            <div class="col-md-4">
+                <div class="maquina-desenho rodando" id="maq-1">
+                    <div class="gear-container"><div class="gear-inner"></div></div>
+                    <h5 class="text-light">FRESA CNC 5-EIXOS</h5>
+                    <span class="badge" id="badge-1">Rodando</span>
+                </div>
             </div>
-        </div>
 
-        <div class="col-xl-3">
-            <div class="panel mb-3 text-center">
-                <small class="text-secondary">OEE GLOBAL DA PLANTA</small>
-                <h2 class="text-warning fw-bold m-0" id="oee">--%</h2>
+            <div class="col-md-4">
+                <div class="maquina-desenho rodando" id="maq-2">
+                    <div style="font-size: 3rem; color: #38bdf8;" id="icone-2">🦾</div>
+                    <h5 class="text-light">ROBÔ DE SOLDA</h5>
+                    <span class="badge" id="badge-2">Rodando</span>
+                </div>
             </div>
-            <div class="panel">
-                <h6 class="text-secondary"><i class="bi bi-broadcast"></i> Log do Chão de Fábrica</h6>
-                <div id="avisos" class="small mt-3"></div>
+
+            <div class="col-md-4">
+                <div class="maquina-desenho rodando" id="maq-3">
+                    <div class="conveyor"><div class="roller"></div><div class="roller"></div><div class="roller"></div></div>
+                    <h5 class="text-light">ESTEIRA DE INSPEÇÃO</h5>
+                    <span class="badge" id="badge-3">Rodando</span>
+                </div>
             </div>
+
         </div>
     </div>
 </div>
@@ -81,25 +90,42 @@
         const res = await fetch('/api/mes');
         const data = await res.json();
         
+        document.getElementById('pecas').innerText = data.pecas_produzidas;
+        document.getElementById('meta').innerText = data.meta;
         document.getElementById('oee').innerText = data.oee.toFixed(1) + "%";
         
-        // Atualizando as máquinas na planta baixa
+        const painelStatus = document.getElementById('painel-status');
+        const txtStatus = document.getElementById('status-linha');
+
+        if (data.alarme_ativo) {
+            painelStatus.className = "panel text-center tela-sirene";
+            txtStatus.className = "data-value fs-3 text-danger";
+            txtStatus.innerText = "PARADA GERAL (ALARME SCADA)";
+        } else {
+            painelStatus.className = "panel text-center";
+            txtStatus.className = "data-value fs-3 text-success";
+            txtStatus.innerText = "OPERAÇÃO CONTÍNUA";
+        }
+
+        // Aplica o status visual (cores e animações) em cada desenho de máquina
         data.maquinas.forEach((m, index) => {
-            const el = document.getElementById(`cell-${index + 1}`);
-            if(el) {
-                el.className = `machine-cell state-${m.cor}`;
-                el.innerHTML = `
-                    <div class="status-led"></div>
-                    <h6>${m.nome.toUpperCase()}</h6>
-                    <span class="badge bg-${m.cor} bg-opacity-10 text-${m.cor} border border-${m.cor}">${m.status.toUpperCase()}</span>
-                `;
+            const num = index + 1;
+            const card = document.getElementById('maq-' + num);
+            const badge = document.getElementById('badge-' + num);
+            
+            badge.innerText = m.status;
+            badge.className = `badge bg-${m.cor} fs-6 mt-2`;
+
+            if (data.alarme_ativo) {
+                card.className = "maquina-desenho maquina-alarme";
+                if(num === 2) document.getElementById('icone-2').style.color = "#ef4444"; // Robô vermelho
+            } else {
+                card.className = "maquina-desenho rodando";
+                if(num === 2) document.getElementById('icone-2').style.color = "#10b981"; // Robô verde
             }
         });
 
-        document.getElementById('avisos').innerHTML = data.avisos.map(a => `
-            <div class="border-start border-3 border-info ps-2 mb-2 bg-dark p-2 text-light">${a}</div>
-        `).join('');
-    }, 3000);
+    }, 2000);
 </script>
 </body>
 </html>
