@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
-    <title>MES | Controle de Manufatura</title>
+    <title>MES | Controlo de Manufatura</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <style>
@@ -12,62 +12,22 @@
         .panel { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .panel-header { font-size: 0.8rem; text-transform: uppercase; color: #94a3b8; font-weight: 600; margin-bottom: 15px;}
         
-        /* NOVO LAYOUT: PLANTA BAIXA DA FÁBRICA */
-        .chao-de-fabrica-container {
-            background-color: #1e2128;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
-        }
+        .chao-de-fabrica-container { background-color: #1e2128; border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; }
+        .planta-fabrica { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; padding: 30px; background-image: linear-gradient(#2a2d35 1px, transparent 1px), linear-gradient(90deg, #2a2d35 1px, transparent 1px); background-size: 20px 20px; border: 2px solid #334155; border-radius: 8px; }
         
-        .planta-fabrica {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 30px;
-            padding: 30px;
-            background-image: 
-                linear-gradient(#2a2d35 1px, transparent 1px),
-                linear-gradient(90deg, #2a2d35 1px, transparent 1px);
-            background-size: 20px 20px;
-            border: 2px solid #334155;
-            border-radius: 8px;
-        }
-        
-        .maquina-bloco {
-            background-color: #151b28;
-            border: 2px solid #334155;
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            position: relative;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        }
-        
+        .maquina-bloco { background-color: #151b28; border: 2px solid #334155; border-radius: 8px; padding: 20px; text-align: center; position: relative; transition: all 0.3s ease; }
         .icone-maq { font-size: 3rem; margin-bottom: 15px; }
         .nome-maq { font-weight: 600; color: #f8fafc; font-size: 0.9rem; letter-spacing: 1px; margin-bottom: 5px; }
         
-        /* LUZ DE STATUS E ANIMAÇÃO */
-        .status-luz {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            margin: 15px auto 10px auto;
-            transition: all 0.3s ease;
-        }
+        .status-luz { width: 18px; height: 18px; border-radius: 50%; margin: 15px auto 10px auto; transition: all 0.3s ease; }
         .status-luz.verde { background-color: #10b981; box-shadow: 0 0 15px #10b981; }
         
-        @keyframes piscar-emergencia {
-            0% { background-color: #151b28; border-color: #ef4444; box-shadow: 0 0 10px rgba(239,68,68,0.2); }
-            50% { background-color: #450a0a; border-color: #ef4444; box-shadow: 0 0 30px rgba(239,68,68,0.8); }
-            100% { background-color: #151b28; border-color: #ef4444; box-shadow: 0 0 10px rgba(239,68,68,0.2); }
-        }
-        
+        @keyframes piscar-emergencia { 0%, 100% { background-color: #151b28; border-color: #ef4444; box-shadow: 0 0 10px rgba(239,68,68,0.2); } 50% { background-color: #450a0a; border-color: #ef4444; box-shadow: 0 0 30px rgba(239,68,68,0.8); } }
         .em-alarme { animation: piscar-emergencia 1s infinite !important; }
         .em-alarme .status-luz { background-color: #ef4444 !important; box-shadow: 0 0 20px #ef4444 !important; }
         
-        .tela-sirene { border: 2px solid #ef4444; animation: flash-bg 1s infinite; }
-        @keyframes flash-bg { 50% { background-color: rgba(239, 68, 68, 0.1); } }
+        .barra-saude-container { width: 100%; background-color: #334155; border-radius: 4px; height: 8px; margin-top: 15px; }
+        .barra-saude { height: 8px; border-radius: 4px; transition: width 0.5s; }
     </style>
 </head>
 <body>
@@ -79,36 +39,61 @@
     </div>
 
     <div class="row g-3 mb-4">
-        <div class="col-md-4"><div class="panel text-center"><div class="panel-header">PRODUÇÃO (PEÇAS / META)</div><div class="data-value fs-2"><span id="pecas" class="text-success">--</span> / <span id="meta" class="text-muted">--</span></div></div></div>
-        <div class="col-md-4"><div class="panel text-center" id="painel-oee"><div class="panel-header">OEE GLOBAL (EFICIÊNCIA)</div><div class="data-value fs-2 text-warning" id="oee">--%</div></div></div>
-        <div class="col-md-4"><div class="panel text-center" id="painel-status"><div class="panel-header">STATUS DA LINHA</div><div class="data-value fs-3 text-info" id="status-linha">AGUARDANDO...</div></div></div>
+        <div class="col-md-4">
+            <div class="panel text-center h-100">
+                <div class="panel-header">PRODUÇÃO & OEE</div>
+                <div class="data-value fs-2"><span id="pecas" class="text-success">--</span> / <span class="text-muted">2000</span></div>
+                <div class="data-value fs-3 text-warning mt-2" id="oee">--%</div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="panel border-primary h-100">
+                <h6 class="text-primary mb-3 text-center" style="font-size: 0.8rem; letter-spacing: 1px; font-weight: 600;">ANÁLISE DE QUALIDADE</h6>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-secondary small">Taxa de Defeitos</span>
+                    <span id="taxa-defeitos" class="fw-bold fs-5 text-warning data-value">--%</span>
+                </div>
+                <div class="progress mb-3" style="height: 6px; background-color: #334155;">
+                    <div id="barra-defeitos" class="progress-bar bg-warning" role="progressbar" style="width: 0%;"></div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <span class="text-secondary small">Tempo de Ciclo Médio</span>
+                    <span id="tempo-ciclo" class="fw-bold fs-5 text-info data-value">--s</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="panel text-center h-100">
+                <div class="panel-header">SAÚDE DA FÁBRICA</div>
+                <div class="barra-saude-container mt-4"><div id="saude-geral" class="barra-saude bg-success" style="width: 100%;"></div></div>
+                <button class="btn btn-sm btn-outline-info mt-4" onclick="realizarManutencao()">Acionar Manutenção Preditiva</button>
+            </div>
+        </div>
     </div>
 
     <div class="chao-de-fabrica-container">
         <div class="panel-header mb-3" style="color: #cbd5e1;">📍 Planta Baixa - Visualização Espacial</div>
         <div class="planta-fabrica">
-            
             <div id="maq-1" class="maquina-bloco">
                 <div class="icone-maq">⚙️</div>
                 <div class="nome-maq">FRESA CNC 5-EIXOS</div>
                 <div id="luz-maq-1" class="status-luz verde"></div>
                 <span id="texto-maq-1" class="badge bg-success mt-2">Rodando</span>
             </div>
-
             <div id="maq-2" class="maquina-bloco">
                 <div class="icone-maq">🦾</div>
                 <div class="nome-maq">ROBÔ DE SOLDA</div>
                 <div id="luz-maq-2" class="status-luz verde"></div>
                 <span id="texto-maq-2" class="badge bg-success mt-2">Rodando</span>
             </div>
-
             <div id="maq-3" class="maquina-bloco">
                 <div class="icone-maq">🛤️</div>
                 <div class="nome-maq">ESTEIRA DE INSPEÇÃO</div>
                 <div id="luz-maq-3" class="status-luz verde"></div>
                 <span id="texto-maq-3" class="badge bg-success mt-2">Rodando</span>
             </div>
-
         </div>
     </div>
 </div>
@@ -120,24 +105,28 @@
             const data = await res.json();
             
             document.getElementById('pecas').innerText = data.pecas_produzidas;
-            document.getElementById('meta').innerText = data.meta;
             document.getElementById('oee').innerText = data.oee.toFixed(1) + "%";
             
-            const painelStatus = document.getElementById('painel-status');
-            const txtStatus = document.getElementById('status-linha');
-
-            // Controlo do Alarme Geral do Painel Superior
-            if (data.alarme_ativo) {
-                painelStatus.className = "panel text-center tela-sirene";
-                txtStatus.className = "data-value fs-3 text-danger";
-                txtStatus.innerText = "PARADA GERAL (ALARME)";
+            // Qualidade
+            document.getElementById('taxa-defeitos').innerText = data.taxa_defeitos.toFixed(1) + "%";
+            document.getElementById('barra-defeitos').style.width = data.taxa_defeitos + "%";
+            if (data.taxa_defeitos > 5.0) {
+                document.getElementById('taxa-defeitos').className = "fw-bold fs-5 text-danger data-value";
+                document.getElementById('barra-defeitos').className = "progress-bar bg-danger";
             } else {
-                painelStatus.className = "panel text-center";
-                txtStatus.className = "data-value fs-3 text-success";
-                txtStatus.innerText = "OPERAÇÃO CONTÍNUA";
+                document.getElementById('taxa-defeitos').className = "fw-bold fs-5 text-success data-value";
+                document.getElementById('barra-defeitos').className = "progress-bar bg-success";
             }
+            document.getElementById('tempo-ciclo').innerText = data.tempo_ciclo.toFixed(1) + "s";
 
-            // A LÓGICA CORRIGIDA: Adiciona e REMOVE o alarme dinamicamente das máquinas
+            // Saúde
+            const barra = document.getElementById('saude-geral');
+            barra.style.width = data.saude_maquina + "%";
+            if(data.saude_maquina > 70) barra.className = "barra-saude bg-success";
+            else if(data.saude_maquina > 30) barra.className = "barra-saude bg-warning";
+            else barra.className = "barra-saude bg-danger";
+
+            // Máquinas e Alarmes
             data.maquinas.forEach((m, index) => {
                 const num = index + 1;
                 const maqBloco = document.getElementById('maq-' + num);
@@ -148,19 +137,20 @@
                 textoMaq.className = `badge bg-${m.cor} mt-2`;
 
                 if (data.alarme_ativo) {
-                    // Liga o Alarme
                     maqBloco.classList.add('em-alarme');
                     luzMaq.classList.remove('verde');
                 } else {
-                    // Desliga o Alarme e restaura ao estado normal
                     maqBloco.classList.remove('em-alarme');
                     luzMaq.classList.add('verde');
                 }
             });
-        } catch(e) {
-            console.error("Erro na atualização do MES:", e);
-        }
+        } catch(e) { console.error("Erro MES:", e); }
     }, 2000);
+
+    async function realizarManutencao() {
+        await fetch('/api/manutencao', { method: 'POST' });
+        alert("Manutenção concluída. Saúde da fábrica reposta para 100%.");
+    }
 </script>
 </body>
 </html>
