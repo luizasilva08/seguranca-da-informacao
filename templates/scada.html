@@ -1,11 +1,13 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
-    <title>HMI SCADA</title>
+    <title>HMI SCADA | Controlo OT</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
         :root { --bg-dark: #0b0f19; --panel-bg: #151b28; --border-color: #262f40; }
         body { background-color: var(--bg-dark); color: #f8fafc; font-family: 'Inter', sans-serif; }
@@ -16,37 +18,38 @@
         .chart-container { position: relative; height: 160px; width: 100%; }
         .metric-header { font-size: 0.8rem; text-transform: uppercase; color: #94a3b8; font-weight: 600; display: flex; justify-content: space-between; margin-bottom: 10px; }
         
-        .estado-alarme { border-color: #ef4444 !important; box-shadow: inset 0 0 20px rgba(239,68,68,0.1) !important; animation: piscar 1.5s infinite;}
+        .estado-alarme { border-color: #ef4444 !important; box-shadow: inset 0 0 20px rgba(239,68,68,0.2) !important; animation: piscar 1.5s infinite;}
         @keyframes piscar { 50% { border-color: #991b1b !important; } }
         
-        .log-terminal { background: #000; border: 1px solid #334155; border-radius: 6px; padding: 10px; height: 150px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #a3e635; }
+        #alerta-mitm {
+            display: none; background-color: #ff0000; color: white; padding: 15px; text-align: center;
+            font-weight: bold; font-size: 1.2rem; text-transform: uppercase; animation: piscar 0.5s infinite;
+        }
     </style>
 </head>
 <body>
 
+<div id="alerta-mitm">⚠️ ATENÇÃO: INTERCETAÇÃO DE REDE (MITM) DETETADA! ASSINATURA DE PACOTE INVÁLIDA. ⚠️</div>
+
 <div class="container-fluid px-4 py-3">
     <div class="d-flex justify-content-between mb-3 border-bottom border-secondary pb-2">
         <h5 class="text-info m-0">⚙️ HMI SCADA - Caldeira Multivariável</h5>
-        <a href="/logout" class="btn btn-outline-danger btn-sm">Sair</a>
     </div>
 
     <div class="row g-3">
         <div class="col-md-3">
             <div class="panel border-warning h-100">
                 <h6 class="text-warning mb-4">Ajustes de Setpoint (SP)</h6>
-                
                 <label class="small text-secondary">Temp Máxima (°C)</label>
                 <div class="input-group input-group-sm mb-3">
                     <input type="number" id="sp-temp" class="form-control bg-dark text-white border-secondary">
                     <button class="btn btn-warning" onclick="alterarSetpoint('temp', 'sp-temp')">Gravar</button>
                 </div>
-
                 <label class="small text-secondary">Pressão Máxima (bar)</label>
                 <div class="input-group input-group-sm mb-3">
                     <input type="number" id="sp-pressao" class="form-control bg-dark text-white border-secondary">
                     <button class="btn btn-warning" onclick="alterarSetpoint('pressao', 'sp-pressao')">Gravar</button>
                 </div>
-
                 <label class="small text-secondary">Vazão Mínima (L/min)</label>
                 <div class="input-group input-group-sm mb-2">
                     <input type="number" id="sp-vazao" class="form-control bg-dark text-white border-secondary">
@@ -80,11 +83,30 @@
                 </div>
             </div>
         </div>
+    </div>
+    
+    <div class="row mt-2">
+        <div class="col-md-3">
+            <div class="panel border-info h-100">
+                <h6 class="text-info mb-3"><i class="bi bi-person-badge"></i> CONTROLO DE ACESSO</h6>
+                <div class="d-flex align-items-center mb-3">
+                    <div class="bg-secondary rounded-circle me-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                        👤
+                    </div>
+                    <div>
+                        <h6 class="mb-0">{{ usuario }}</h6>
+                        <small class="text-success">Autenticado</small>
+                    </div>
+                </div>
+                <a href="/logout" class="btn btn-outline-danger w-100 btn-sm">Encerrar Sessão</a>
+            </div>
+        </div>
         
-        <div class="col-12">
-            <div class="panel">
-                <div class="metric-header" style="color: #cbd5e1;">CONSOLE DE EVENTOS</div>
-                <div id="terminal" class="log-terminal"><div style="color: #38bdf8;">[SISTEMA] Sincronização de Dados Ativa.</div></div>
+        <div class="col-md-9">
+            <div class="panel h-100">
+                <h6 class="text-secondary"><i class="bi bi-journal-code"></i> LOGS DE SISTEMA (Tempo Real)</h6>
+                <div id="lista-logs" style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #cbd5e1; height: 95px; overflow-y: auto;">
+                    </div>
             </div>
         </div>
     </div>
@@ -96,19 +118,24 @@
     const cPress = new Chart(document.getElementById('chartPressao').getContext('2d'), { type: 'line', data: { labels: [], datasets: [{ data: [], borderColor: '#3b82f6', tension: 0.3 }] }, options: opts });
     const cVazao = new Chart(document.getElementById('chartVazao').getContext('2d'), { type: 'line', data: { labels: [], datasets: [{ data: [], borderColor: '#10b981', tension: 0.3 }] }, options: opts });
 
-    let stateAlarme = { temp: false, pressao: false, vazao: false };
-
-    function log(msg, color) {
-        const term = document.getElementById('terminal');
-        term.innerHTML += `<div style="color: ${color}">[${new Date().toLocaleTimeString('pt-BR')}] ${msg}</div>`;
-        term.scrollTop = term.scrollHeight;
-    }
+    const CHAVE_SECRETA = "INDUSTRIAS_KEY_2024";
 
     setInterval(async () => {
         try {
             const res = await fetch('/api/monitoramento');
-            const d = await res.json();
-            const t = new Date().toLocaleTimeString('pt-BR');
+            const respostaServidor = await res.json();
+            
+            // VERIFICAÇÃO DE ASSINATURA (ANTI-MITM)
+            const hashEsperado = CryptoJS.SHA256(respostaServidor.payload + CHAVE_SECRETA).toString();
+            if (hashEsperado !== respostaServidor.assinatura) {
+                document.getElementById('alerta-mitm').style.display = 'block';
+                return; // Bloqueia a leitura se a assinatura for inválida
+            } else {
+                document.getElementById('alerta-mitm').style.display = 'none';
+            }
+
+            const d = JSON.parse(respostaServidor.payload);
+            const t = new Date().toLocaleTimeString('pt-PT');
             
             document.getElementById('val-temp').innerText = d.temp.valor.toFixed(1) + ' °C';
             document.getElementById('val-lim-temp').innerText = 'SP: ' + d.temp.limite;
@@ -117,35 +144,26 @@
             document.getElementById('val-vazao').innerText = d.vazao.valor.toFixed(1) + ' L/m';
             document.getElementById('val-lim-vazao').innerText = 'SP: ' + d.vazao.limite;
 
-            const handleAlarme = (key, dataObj, cardId, msgAtiva, msgNormal) => {
-                if (dataObj.alarme) {
-                    document.getElementById(cardId).classList.add('estado-alarme');
-                    if (!stateAlarme[key]) { log(msgAtiva, "#f87171"); stateAlarme[key] = true; }
-                } else {
-                    document.getElementById(cardId).classList.remove('estado-alarme');
-                    if (stateAlarme[key]) { log(msgNormal, "#a3e635"); stateAlarme[key] = false; }
-                }
-            };
+            document.getElementById('card-temp').className = d.temp.alarme ? "panel estado-alarme" : "panel";
+            document.getElementById('card-pressao').className = d.pressao.alarme ? "panel estado-alarme" : "panel";
+            document.getElementById('card-vazao').className = d.vazao.alarme ? "panel estado-alarme" : "panel";
 
-            handleAlarme('temp', d.temp, 'card-temp', 'ALERTA: Temperatura Alta!', 'Temperatura normalizada.');
-            handleAlarme('pressao', d.pressao, 'card-pressao', 'ALERTA: Pressão Alta!', 'Pressão normalizada.');
-            handleAlarme('vazao', d.vazao, 'card-vazao', 'ALERTA: Baixa Vazão!', 'Vazão normalizada.');
+            // Atualiza o quadro de Logs
+            document.getElementById('lista-logs').innerHTML = d.logs.map(l => `<div><span class="text-info">[${l.hora}]</span> ${l.acao}</div>`).join('');
 
+            // Atualiza os Gráficos
             [cTemp, cPress, cVazao].forEach((c, i) => {
                 c.data.labels.push(t); c.data.datasets[0].data.push([d.temp.valor, d.pressao.valor, d.vazao.valor][i]);
                 if(c.data.labels.length > 20) { c.data.labels.shift(); c.data.datasets[0].data.shift(); }
                 c.update();
             });
-        } catch(e) {
-            console.error(e);
-        }
+        } catch(e) { console.error(e); }
     }, 2000);
 
     async function alterarSetpoint(varName, inputId) {
         const val = document.getElementById(inputId).value;
         if(!val) return;
         await fetch('/api/setpoint', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ variavel: varName, valor: val }) });
-        log(`Você alterou o Setpoint de ${varName.toUpperCase()} para ${val}`, "#38bdf8");
         document.getElementById(inputId).value = '';
     }
 </script>
