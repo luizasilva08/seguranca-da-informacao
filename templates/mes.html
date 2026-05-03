@@ -2,76 +2,75 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>MES | Planta Fabril</title>
+    <title>MES | Layout da Fábrica</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        :root { --bg-dark: #0b0f19; --panel-bg: #151b28; --border-color: #262f40; }
+        :root { --bg-dark: #070b14; --blueprint: #1e293b; }
         body { background-color: var(--bg-dark); color: #f8fafc; font-family: 'Inter', sans-serif; }
-        .topbar { background: var(--panel-bg); border-bottom: 1px solid var(--border-color); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; }
-        .panel { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .panel { background: #111827; border: 1px solid #1e293b; border-radius: 8px; padding: 15px; }
         
-        /* PLANTA BAIXA DA FÁBRICA CSS */
-        .factory-floor { border: 2px dashed #475569; padding: 15px; border-radius: 8px; background: #070a11; position: relative; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; gap: 15px; }
-        .factory-zone { border: 1px solid #334155; border-radius: 6px; padding: 15px; background: rgba(30, 41, 59, 0.3); }
-        .zone-title { font-size: 0.75rem; text-transform: uppercase; color: #64748b; letter-spacing: 2px; margin-bottom: 15px; border-bottom: 1px solid #334155; padding-bottom: 5px; }
+        /* O EFEITO REALISTA DE PLANTA BAIXA (BLUEPRINT) */
+        .blueprint-floor { 
+            background-color: #0b1120;
+            background-image: linear-gradient(rgba(30, 41, 59, 0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(30, 41, 59, 0.5) 1px, transparent 1px);
+            background-size: 30px 30px;
+            border: 2px solid #3b82f6; border-radius: 8px; padding: 30px; min-height: 450px; position: relative;
+        }
         
-        .machine-block { background: #1e293b; border: 1px solid; border-radius: 6px; padding: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; margin-bottom: 10px; transition: all 0.3s; }
-        .machine-icon { font-size: 1.5rem; margin-bottom: 5px; }
+        .agv-path { border: 2px dashed #475569; position: absolute; top: 100px; bottom: 100px; left: 50%; width: 2px; }
+        .agv-robot { position: absolute; width: 14px; height: 14px; background: #38bdf8; border-radius: 50%; left: -6px; top: 10%; box-shadow: 0 0 10px #38bdf8; animation: move-agv 8s linear infinite alternate; }
+        @keyframes move-agv { 0% { top: 10%; } 100% { top: 90%; } }
+
+        .machine-cell { background: #151b28; border: 2px solid #334155; border-radius: 6px; padding: 15px; position: absolute; text-align: center; width: 220px; transition: all 0.3s;}
+        .machine-cell h6 { font-size: 0.8rem; margin-bottom: 5px; font-weight: bold; color: #94a3b8; }
         
-        .status-success { border-color: #10b981; box-shadow: inset 0 0 10px rgba(16, 185, 129, 0.2); }
-        .status-success .machine-icon { color: #10b981; }
-        .status-warning { border-color: #f59e0b; box-shadow: inset 0 0 10px rgba(245, 158, 11, 0.2); }
-        .status-warning .machine-icon { color: #f59e0b; }
-        .status-danger { border-color: #ef4444; box-shadow: inset 0 0 10px rgba(239, 68, 68, 0.2); animation: piscar-erro 1s infinite; }
-        .status-danger .machine-icon { color: #ef4444; }
+        /* Posições na Planta */
+        #cell-1 { top: 50px; left: 50px; }
+        #cell-2 { top: 250px; left: 50px; }
+        #cell-3 { top: 150px; right: 50px; }
+
+        /* Status LEDs */
+        .status-led { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-bottom: 5px; }
+        .state-success { border-color: #10b981; box-shadow: inset 0 0 15px rgba(16,185,129,0.2); } .state-success .status-led { background: #10b981; box-shadow: 0 0 10px #10b981; }
+        .state-warning { border-color: #f59e0b; } .state-warning .status-led { background: #f59e0b; box-shadow: 0 0 10px #f59e0b; }
+        .state-danger { border-color: #ef4444; box-shadow: inset 0 0 20px rgba(239,68,68,0.4); animation: piscar-maq 1s infinite;} .state-danger .status-led { background: #ef4444; }
+        .state-secondary { border-color: #475569; opacity: 0.7; } .state-secondary .status-led { background: #64748b; }
         
-        @keyframes piscar-erro { 0% { opacity: 1; } 50% { opacity: 0.5; background: rgba(239,68,68,0.2); } 100% { opacity: 1; } }
+        @keyframes piscar-maq { 50% { border-color: #991b1b; } }
     </style>
 </head>
 <body>
 
-<div class="topbar mb-3">
-    <div class="fw-bold text-warning"><i class="bi bi-kanban me-2"></i>MES | SISTEMA DE EXECUÇÃO DA MANUFATURA</div>
-    <a href="/logout" class="btn btn-outline-danger btn-sm"><i class="bi bi-power"></i> Sair</a>
-</div>
-
-<div class="container-fluid px-4">
-    <div class="row g-3 mb-4">
-        <div class="col"><div class="panel text-center"><small class="text-secondary">PRODUTO</small><h5 class="m-0 mt-1 text-info" id="prod">--</h5></div></div>
-        <div class="col"><div class="panel text-center"><small class="text-secondary">OEE GLOBAL</small><h5 class="m-0 mt-1 text-warning" id="oee">--</h5></div></div>
-        <div class="col"><div class="panel text-center"><small class="text-secondary">PEÇAS / META</small><h5 class="m-0 mt-1 text-success"><span id="pecas">--</span> / <span id="meta" class="text-muted">--</span></h5></div></div>
+<div class="container-fluid px-4 py-3">
+    <div class="d-flex justify-content-between mb-3 border-bottom border-secondary pb-2">
+        <h5 class="text-warning m-0"><i class="bi bi-diagram-3"></i> MES - Planta Baixa Digital (Digital Twin)</h5>
+        <a href="/logout" class="btn btn-outline-danger btn-sm">Sair</a>
     </div>
 
     <div class="row g-4">
         <div class="col-xl-9">
-            <div class="panel h-100">
-                <h6 class="mb-4 text-secondary"><i class="bi bi-map"></i> PLANTA BAIXA - GALPÃO A (LAYT-01)</h6>
+            <div class="blueprint-floor">
+                <span class="badge bg-primary position-absolute top-0 start-0 m-3">ENTRADA MATÉRIA PRIMA</span>
+                <span class="badge bg-success position-absolute bottom-0 end-0 m-3">EXPEDIÇÃO (PRODUTO ACABADO)</span>
                 
-                <div class="factory-floor">
-                    <div class="factory-zone">
-                        <div class="zone-title">ZONA DE USINAGEM (CNC)</div>
-                        <div class="row" id="zona-usinagem"></div>
-                    </div>
-                    
-                    <div class="factory-zone">
-                        <div class="zone-title">ZONA DE SOLDA / MONTAGEM</div>
-                        <div class="row" id="zona-solda"></div>
-                    </div>
-                    
-                    <div class="factory-zone" style="grid-column: span 2;">
-                        <div class="zone-title">LINHA DE INSPEÇÃO E ESTEIRA FINAL</div>
-                        <div class="row" id="zona-inspecao"></div>
-                    </div>
-                </div>
+                <div class="agv-path"><div class="agv-robot"></div></div>
+
+                <div id="cell-1" class="machine-cell"><div class="status-led"></div><h6>CARREGANDO...</h6></div>
+                <div id="cell-2" class="machine-cell"><div class="status-led"></div><h6>CARREGANDO...</h6></div>
+                <div id="cell-3" class="machine-cell"><div class="status-led"></div><h6>CARREGANDO...</h6></div>
             </div>
         </div>
 
         <div class="col-xl-3">
-            <div class="panel h-100">
-                <h6 class="text-secondary mb-3"><i class="bi bi-megaphone"></i> Log de Produção</h6>
-                <div id="lista-avisos" style="font-size: 0.85rem;"></div>
+            <div class="panel mb-3 text-center">
+                <small class="text-secondary">OEE GLOBAL DA PLANTA</small>
+                <h2 class="text-warning fw-bold m-0" id="oee">--%</h2>
+            </div>
+            <div class="panel">
+                <h6 class="text-secondary"><i class="bi bi-broadcast"></i> Log do Chão de Fábrica</h6>
+                <div id="avisos" class="small mt-3"></div>
             </div>
         </div>
     </div>
@@ -82,35 +81,23 @@
         const res = await fetch('/api/mes');
         const data = await res.json();
         
-        document.getElementById('prod').innerText = data.produto;
         document.getElementById('oee').innerText = data.oee.toFixed(1) + "%";
-        document.getElementById('pecas').innerText = data.pecas_produzidas;
-        document.getElementById('meta').innerText = data.meta;
-
-        // Distribui as máquinas do app.py para as zonas corretas da planta
-        const usinagem = [], solda = [], inspecao = [];
-        data.maquinas.forEach(m => {
-            let icon = 'bi-gear-wide-connected';
-            if(m.nome.includes('Fresa') || m.nome.includes('Torno')) usinagem.push(m);
-            else if(m.nome.includes('Solda')) { solda.push(m); icon = 'bi-fire'; }
-            else { inspecao.push(m); icon = 'bi-search'; }
+        
+        // Atualizando as máquinas na planta baixa
+        data.maquinas.forEach((m, index) => {
+            const el = document.getElementById(`cell-${index + 1}`);
+            if(el) {
+                el.className = `machine-cell state-${m.cor}`;
+                el.innerHTML = `
+                    <div class="status-led"></div>
+                    <h6>${m.nome.toUpperCase()}</h6>
+                    <span class="badge bg-${m.cor} bg-opacity-10 text-${m.cor} border border-${m.cor}">${m.status.toUpperCase()}</span>
+                `;
+            }
         });
 
-        const renderMachine = (m, icon) => `
-            <div class="col-6">
-                <div class="machine-block status-${m.cor}">
-                    <i class="bi ${m.nome.includes('Solda') ? 'bi-fire' : (m.nome.includes('Insp') ? 'bi-search' : 'bi-gear-wide-connected')} machine-icon"></i>
-                    <strong class="small">${m.nome}</strong>
-                    <span class="badge bg-${m.cor} mt-1">${m.status}</span>
-                </div>
-            </div>`;
-
-        document.getElementById('zona-usinagem').innerHTML = usinagem.map(m => renderMachine(m)).join('');
-        document.getElementById('zona-solda').innerHTML = solda.map(m => renderMachine(m)).join('');
-        document.getElementById('zona-inspecao').innerHTML = inspecao.map(m => renderMachine(m)).join('');
-
-        document.getElementById('lista-avisos').innerHTML = data.avisos.map(a => `
-            <div class="mb-2 p-2 rounded" style="background: rgba(255,255,255,0.05); border-left: 2px solid #f59e0b;">${a}</div>
+        document.getElementById('avisos').innerHTML = data.avisos.map(a => `
+            <div class="border-start border-3 border-info ps-2 mb-2 bg-dark p-2 text-light">${a}</div>
         `).join('');
     }, 3000);
 </script>
