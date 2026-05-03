@@ -199,11 +199,16 @@ def dados_erp():
         "logs": lista_logs
     })
 
+# ==========================================
+# INICIALIZAÇÃO DO BANCO 
+# ==========================================
+with app.app_context(): 
+    db.create_all()
+    # Garante que sempre exista 1 linha de estado no banco
+    if not FabricaState.query.first():
+        db.session.add(FabricaState())
+        db.session.commit()
+
+# Só o app.run fica dentro do if
 if __name__ == '__main__':
-    with app.app_context(): 
-        db.create_all()
-        # Garante que sempre exista 1 linha de estado no banco
-        if not FabricaState.query.first():
-            db.session.add(FabricaState())
-            db.session.commit()
     app.run(debug=True)
