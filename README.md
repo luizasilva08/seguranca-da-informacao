@@ -37,7 +37,7 @@ O projeto está dividido em quatro interfaces principais, protegidas por autenti
 
 1. **🔐 Login Seguro:** Proteção contra Força Bruta (bloqueio de IP por tentativas falhas) e senhas com hash criptográfico.
 2. **🏭 SCADA (Operador):** Monitoramento em tempo real de Temperatura, Pressão e Vazão com alarmes dinâmicos.
-3. **🗺️ MES (Supervisor):** Visualização do estado das máquinas com botão de Parada de Emergência (E-STOP).
+3. **🗺️ MES (Supervisor):** Visualização do estado das máquinas.
 4. **📊 ERP & Compliance (Engenharia):** Dashboard executivo com exportação de relatórios (PDF/CSV), auditoria contínua de logs e verificação de assinatura digital de lotes de produção.
 
 ---
