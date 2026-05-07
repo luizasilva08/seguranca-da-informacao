@@ -51,5 +51,5 @@ O projeto está hospedado no Render. Você pode testar o sistema completo atrav�
 ### Opção 2: Clone este repositório
 
 ```bash
-git clone [https://github.com/luizasilva08/seguranca-da-informacao.git](https://github.com/luizasilva08/seguranca-da-informacao.git)
+git clone [https://github.com/luizasilva08/seguranca-da-informacao.git]
 cd seguranca-da-informacao
