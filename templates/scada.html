@@ -147,7 +147,7 @@
             }
 
             const d = JSON.parse(respostaServidor.payload);
-            const t = new Date().toLocaleTimeString('pt-PT');
+            const t = new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
             
             document.getElementById('val-temp').innerText = d.temp.valor.toFixed(1) + ' °C';
             document.getElementById('val-lim-temp').innerText = 'SP: ' + d.temp.limite;
