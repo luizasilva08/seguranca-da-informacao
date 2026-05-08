@@ -111,7 +111,7 @@ def login():
     username = data.get('username')
     ip_address = request.remote_addr or "127.0.0.1"
     
-    # PROTEÇÃO REDUZIDA (TESTES): 5 erros num minuto geram bloqueio
+    # PROTEÇÃO REDUZIDA (TESTES): 3 erros num minuto geram bloqueio
     limite_tempo = datetime.now() - timedelta(minutes=1)
     tentativas = FailedLogin.query.filter(
         FailedLogin.ip_address == ip_address, 
