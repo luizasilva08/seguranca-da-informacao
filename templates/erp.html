@@ -6,6 +6,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
@@ -23,14 +24,33 @@
         .table-custom { color: #f8f9fa; font-size: 0.85rem; margin: 0; }
         .table-custom th { color: #ffffff; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; border-bottom: 1px solid #475569; }
         .table-custom td { border-bottom: 1px solid #334155; color: #e2e8f0; vertical-align: middle; }
-        
-        .pdf-export { background-color: #0f172a !important; padding: 20px; }
+
+  
+        .pdf-export-mode {
+            width: 1100px !important;
+            max-width: 1100px !important;
+            margin: 0 auto !important;
+            overflow: visible !important;
+            background-color: #0f172a !important; 
+        }
+        .pdf-export-mode .row {
+            display: flex !important;
+            flex-wrap: nowrap !important; 
+            width: 100% !important;
+        }
+        .pdf-export-mode .col-md-4 {
+            flex: 0 0 33.333% !important; 
+            width: 33.333% !important;
+            max-width: 33.333% !important;
+            padding-right: 15px;
+            padding-left: 15px;
+        }
     </style>
 </head>
 <body>
 
 <div class="topbar mb-4">
-    <div class="fw-bold text-success"><i class="bi bi-buildings me-2"></i>ERP | VISÃO EXECUTIVA</div>
+    <div class="fw-bold text-success"><i class="bi bi-buildings me-2"></i>ERP | VISÃO EXECUTIVA E COMPLIANCE</div>
     <div class="d-flex gap-2">
         <button onclick="exportarPDF()" class="btn btn-outline-light btn-sm"><i class="bi bi-file-pdf"></i> PDF</button>
         <button onclick="exportarCSV()" class="btn btn-outline-light btn-sm"><i class="bi bi-file-earmark-spreadsheet"></i> CSV</button>
@@ -48,26 +68,32 @@
     <div class="row g-4">
         <div class="col-md-4">
             <div class="panel border-success h-100">
-                <h6 class="text-success mb-3"><i class="bi bi-box-seam"></i> RASTREABILIDADE</h6>
+                <h6 class="text-success mb-3"><i class="bi bi-box-seam"></i> RASTREABILIDADE DE LOTE</h6>
                 <div class="mb-3">
-                    <small class="text-secondary">Lote Atual:</small>
+                    <small class="text-secondary">Lote Atual de Produção:</small>
                     <h4 id="lote-atual" class="text-white mt-1" style="font-family: 'JetBrains Mono', monospace;">--</h4>
                 </div>
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-secondary small">Data Produção:</span>
                     <span id="data-lote" class="text-white small">--/--/----</span>
                 </div>
-                <button onclick="verificarLote()" class="btn btn-outline-success w-100 btn-sm mt-3">Verificar Assinatura</button>
-                <div id="resultado-assinatura" class="mt-3 text-center small text-info"></div>
+                <div class="d-flex justify-content-between mb-4">
+                    <span class="text-secondary small">Status do Lote:</span>
+                    <span class="badge bg-success">LIBERADO</span>
+                </div>
+                <button onclick="verificarLote()" class="btn btn-outline-success w-100 btn-sm">
+                    <i class="bi bi-shield-check"></i> Verificar Assinatura Digital
+                </button>
+                <div id="resultado-assinatura" class="mt-3 text-center small text-info" style="font-family: monospace; word-break: break-all;"></div>
             </div>
         </div>
 
         <div class="col-md-4">
             <div class="panel h-100">
-                <h6 class="text-secondary mb-3"><i class="bi bi-list-check"></i> AUDITORIA (LOGS)</h6>
+                <h6 class="text-secondary mb-3"><i class="bi bi-list-check"></i> AUDITORIA DO SISTEMA</h6>
                 <div style="max-height: 220px; overflow-y: auto;">
                     <table class="table table-custom table-dark table-striped">
-                        <thead><tr><th>Hora</th><th>User</th><th>Ação</th></tr></thead>
+                        <thead><tr><th>Hora</th><th>Utilizador</th><th>Ação</th></tr></thead>
                         <tbody id="tabela-logs" style="font-family: 'JetBrains Mono', monospace;"></tbody>
                     </table>
                 </div>
@@ -76,85 +102,120 @@
 
         <div class="col-md-4">
             <div class="panel h-100 text-center">
-                <h6 class="text-secondary mb-3"><i class="bi bi-shield-lock"></i> SEGURANÇA</h6>
-                <div style="height: 120px; margin: 0 auto;"><canvas id="chartSeguranca"></canvas></div>
+                <h6 class="text-secondary mb-3"><i class="bi bi-shield-lock"></i> POSTURA DE SEGURANÇA</h6>
+                <div style="height: 150px; position: relative; margin: 0 auto;">
+                    <canvas id="chartSeguranca"></canvas>
+                </div>
                 <div id="status-seg" class="mt-3 fw-bold fs-4">--/100</div>
-                <div class="small mt-2 text-warning">Ataques bloqueados: <span id="falhas" class="fw-bold text-white">0</span></div>
+                <div class="small mt-2 text-warning">Ataques bloqueados (1h): <span id="falhas" class="fw-bold text-white">0</span></div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    let dadosGlobais = {}; 
+    let dadosGlobais = {};
+
     const ctx = document.getElementById('chartSeguranca').getContext('2d');
     const chartRisco = new Chart(ctx, {
         type: 'doughnut',
-        data: { labels: ['Score', 'Risco'], datasets: [{ data: [100, 0], backgroundColor: ['#10b981', '#ef4444'], borderWidth: 0 }] },
-        options: { responsive: true, maintainAspectRatio: false, cutout: '80%', plugins: { legend: { display: false } } }
+        data: { labels: ['Saúde (Score)', 'Risco'], datasets: [{ data: [100, 0], backgroundColor: ['#10b981', '#ef4444'], borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '80%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
     });
 
-    async function atualizarDashboard() {
+    setInterval(async () => {
         const res = await fetch('/api/erp');
         const data = await res.json();
-        dadosGlobais = data;
+        dadosGlobais = data; 
         
         document.getElementById('fat').innerText = data.kpi_financeiro.faturamento;
         document.getElementById('custo').innerText = data.kpi_financeiro.custo_energia;
         document.getElementById('desp').innerText = data.kpi_financeiro.desperdicio;
+
         document.getElementById('lote-atual').innerText = data.lote_atual;
         document.getElementById('data-lote').innerText = data.data_lote;
-        document.getElementById('falhas').innerText = data.falhas_login;
-        document.getElementById('status-seg').innerText = data.seguranca_score + " / 100";
 
-        chartRisco.data.datasets[0].data = [data.seguranca_score, 100 - data.seguranca_score];
+        const score = data.seguranca_score;
+        chartRisco.data.datasets[0].data = [score, 100 - score];
+        if(score > 80) chartRisco.data.datasets[0].backgroundColor[0] = '#10b981';
+        else if(score > 50) chartRisco.data.datasets[0].backgroundColor[0] = '#f59e0b';
+        else chartRisco.data.datasets[0].backgroundColor[0] = '#ef4444';
         chartRisco.update();
 
-        document.getElementById('tabela-logs').innerHTML = data.logs.map(l => `
-            <tr><td class="text-muted">${l.data}</td><td class="text-primary">${l.usuario}</td><td>${l.acao}</td></tr>
-        `).join('');
+        document.getElementById('status-seg').innerText = score + " / 100";
+        document.getElementById('status-seg').style.color = chartRisco.data.datasets[0].backgroundColor[0];
+        document.getElementById('falhas').innerText = data.falhas_login;
+
+        document.getElementById('tabela-logs').innerHTML = data.logs.map(l => {
+            let horaFormatada = l.data; // Mantém a hora original por padrão
+            
+            try {
+                if (l.data && l.data.includes(':')) {
+                    const dataFicticia = new Date(`1970-01-01T${l.data}Z`);
+                    
+                    if (!isNaN(dataFicticia)) {
+                        horaFormatada = dataFicticia.toLocaleTimeString('pt-BR', { 
+                            timeZone: 'America/Sao_Paulo',
+                            hour: '2-digit', 
+                            minute: '2-digit', 
+                            second: '2-digit'
+                        });
+                    }
+                }
+            } catch(e) {
+            }
+            
+            return `<tr><td class="text-muted">${horaFormatada}</td><td class="text-primary">${l.usuario}</td><td>${l.acao}</td></tr>`;
+        }).join('');
+    }, 4000);
+
+    async function verificarLote() {
+        const btn = document.getElementById('resultado-assinatura');
+        btn.innerText = "A verificar chaves na ledger interna...";
+        
+        const res = await fetch('/api/verificar_lote', { method: 'POST' });
+        const data = await res.json();
+        
+        setTimeout(() => {
+            btn.innerHTML = `<span class="text-success fw-bold">STATUS: ${data.status}</span><br>HASH: ${data.assinatura}...`;
+        }, 1200);
     }
 
-    setInterval(atualizarDashboard, 4000);
-    atualizarDashboard();
+    function exportarPDF() {
+        const elemento = document.getElementById('conteudo-dashboard');
+        const botoes = document.querySelector('.d-flex.gap-2'); 
 
+        if(botoes) botoes.style.visibility = 'hidden';
 
-function exportarPDF() {
-    const elemento = document.getElementById('conteudo-dashboard');
-    const botoes = document.querySelector('.d-flex.gap-2'); 
+        elemento.classList.add('pdf-export-mode');
 
-    if(botoes) botoes.style.visibility = 'hidden';
+        const opt = {
+            margin: [10, 10, 10, 10],
+            filename: 'Relatorio_Nexus_UI.pdf',
+            image: { type: 'jpeg', quality: 1.0 },
+            html2canvas: { 
+                scale: 2, 
+                backgroundColor: '#0f172a',
+                useCORS: true,
+                scrollX: 0,
+                scrollY: 0
+            },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+        };
 
-    const estiloOriginal = elemento.style.cssText;
-    elemento.style.width = '1200px';
-    elemento.style.minWidth = '1200px';
-    elemento.style.padding = '20px';
-    elemento.style.backgroundColor = '#0f172a';
-
-    const opt = {
-        margin: [5, 5, 5, 5],
-        filename: 'Relatorio_Nexus_UI.pdf',
-        image: { type: 'jpeg', quality: 1.0 },
-        html2canvas: { 
-            scale: 2, 
-            backgroundColor: '#0f172a',
-            width: 1200,        
-            windowWidth: 1200   
-        },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
-    };
-
-
-    html2pdf().set(opt).from(elemento).save().then(() => {
-        if(botoes) botoes.style.visibility = 'visible';
-        elemento.style.cssText = estiloOriginal; 
-    });
-}
+        html2pdf().set(opt).from(elemento).save().then(() => {
+            if(botoes) botoes.style.visibility = 'visible';
+            elemento.classList.remove('pdf-export-mode');
+        });
+    }
 
     function exportarCSV() {
-        if (!dadosGlobais.logs) return;
+        if (!dadosGlobais.logs) {
+            alert("Aguarde o carregamento dos dados antes de exportar.");
+            return;
+        }
         
-        let csv = "\ufeff"; // BOM para acentuação no Excel
+        let csv = "\ufeff"; // BOM para o Excel ler acentos
         csv += "RELATORIO EXECUTIVO - NEXUS UI\n";
         csv += `Data:;${new Date().toLocaleString()}\n\n`;
         csv += "INDICADORES;\n";
@@ -172,14 +233,6 @@ function exportarPDF() {
         link.href = URL.createObjectURL(blob);
         link.download = "Relatorio_ERP.csv";
         link.click();
-    }
-
-    async function verificarLote() {
-        const btn = document.getElementById('resultado-assinatura');
-        btn.innerText = "A verificar...";
-        const res = await fetch('/api/verificar_lote', { method: 'POST' });
-        const data = await res.json();
-        btn.innerHTML = `<span class="text-success">STATUS: ${data.status}</span>`;
     }
 </script>
 </body>
