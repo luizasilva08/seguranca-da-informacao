@@ -154,11 +154,16 @@
         }, 1200);
     }
 
+
     function exportarPDF() {
         const elemento = document.getElementById('conteudo-dashboard');
         const botoes = document.querySelector('.d-flex.gap-2'); 
 
         if(botoes) botoes.style.visibility = 'hidden';
+
+
+        const larguraOriginal = elemento.style.width;
+        elemento.style.width = '1150px';
 
         const opt = {
             margin: [10, 10, 10, 10],
@@ -168,13 +173,15 @@
                 scale: 2, 
                 backgroundColor: '#0f172a',
                 useCORS: true,
-                windowWidth: 1200 
+                width: 1150,      
+                windowWidth: 1150 
             },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
         };
 
         html2pdf().set(opt).from(elemento).save().then(() => {
             if(botoes) botoes.style.visibility = 'visible';
+            elemento.style.width = larguraOriginal;
         });
     }
 
