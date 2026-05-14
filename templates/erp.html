@@ -24,30 +24,6 @@
         .table-custom { color: #f8f9fa; font-size: 0.85rem; margin: 0; }
         .table-custom th { color: #ffffff; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; border-bottom: 1px solid #475569; }
         .table-custom td { border-bottom: 1px solid #334155; color: #e2e8f0; vertical-align: middle; }
-
-        .pdf-export-mode {
-            width: 1150px !important;
-            min-width: 1150px !important;
-            max-width: 1150px !important;
-            padding: 10px !important;
-            margin: 0 !important;
-            box-sizing: border-box !important;
-            background-color: #0f172a !important;
-        }
-        .pdf-export-mode .row {
-            display: flex !important;
-            flex-wrap: nowrap !important; 
-            width: 100% !important;
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-        }
-        .pdf-export-mode .col-md-4 {
-            flex: 0 0 33.333% !important; 
-            width: 33.333% !important;
-            max-width: 33.333% !important;
-            padding-right: 15px !important;
-            padding-left: 15px !important;
-        }
     </style>
 </head>
 <body>
@@ -106,9 +82,11 @@
         <div class="col-md-4">
             <div class="panel h-100 text-center">
                 <h6 class="text-secondary mb-3"><i class="bi bi-shield-lock"></i> POSTURA DE SEGURANÇA</h6>
-                <div style="height: 150px; position: relative; margin: 0 auto;">
+                
+                <div style="width: 150px; height: 150px; margin: 0 auto; display: flex; justify-content: center; align-items: center; position: relative;">
                     <canvas id="chartSeguranca"></canvas>
                 </div>
+                
                 <div id="status-seg" class="mt-3 fw-bold fs-4">--/100</div>
                 <div class="small mt-2 text-warning">Ataques bloqueados (1h): <span id="falhas" class="fw-bold text-white">0</span></div>
             </div>
@@ -129,7 +107,7 @@
     setInterval(async () => {
         const res = await fetch('/api/erp');
         const data = await res.json();
-        dadosGlobais = data;
+        dadosGlobais = data; 
         
         document.getElementById('fat').innerText = data.kpi_financeiro.faturamento;
         document.getElementById('custo').innerText = data.kpi_financeiro.custo_energia;
@@ -151,23 +129,17 @@
 
         document.getElementById('tabela-logs').innerHTML = data.logs.map(l => {
             let horaFormatada = l.data; 
-            
             try {
                 if (l.data && l.data.includes(':')) {
                     const dataFicticia = new Date(`1970-01-01T${l.data}Z`);
-                    
                     if (!isNaN(dataFicticia)) {
                         horaFormatada = dataFicticia.toLocaleTimeString('pt-BR', { 
                             timeZone: 'America/Sao_Paulo',
-                            hour: '2-digit', 
-                            minute: '2-digit', 
-                            second: '2-digit'
+                            hour: '2-digit', minute: '2-digit', second: '2-digit'
                         });
                     }
                 }
-            } catch(e) {
-            }
-            
+            } catch(e) {}
             return `<tr><td class="text-muted">${horaFormatada}</td><td class="text-primary">${l.usuario}</td><td>${l.acao}</td></tr>`;
         }).join('');
     }, 4000);
@@ -175,26 +147,18 @@
     async function verificarLote() {
         const btn = document.getElementById('resultado-assinatura');
         btn.innerText = "A verificar chaves na ledger interna...";
-        
         const res = await fetch('/api/verificar_lote', { method: 'POST' });
         const data = await res.json();
-        
         setTimeout(() => {
             btn.innerHTML = `<span class="text-success fw-bold">STATUS: ${data.status}</span><br>HASH: ${data.assinatura}...`;
         }, 1200);
     }
 
-
-
     function exportarPDF() {
         const elemento = document.getElementById('conteudo-dashboard');
         const botoes = document.querySelector('.d-flex.gap-2'); 
 
-
         if(botoes) botoes.style.visibility = 'hidden';
-
-
-        elemento.classList.add('pdf-export-mode');
 
         const opt = {
             margin: [10, 10, 10, 10],
@@ -204,36 +168,24 @@
                 scale: 2, 
                 backgroundColor: '#0f172a',
                 useCORS: true,
-                width: 1150,        
-                windowWidth: 1150   
+                windowWidth: 1200 
             },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
         };
 
         html2pdf().set(opt).from(elemento).save().then(() => {
             if(botoes) botoes.style.visibility = 'visible';
-            elemento.classList.remove('pdf-export-mode');
         });
     }
 
     function exportarCSV() {
-        if (!dadosGlobais.logs) {
-            alert("Aguarde o carregamento dos dados antes de exportar.");
-            return;
-        }
+        if (!dadosGlobais.logs) return alert("Aguarde o carregamento dos dados antes de exportar.");
         
-        let csv = "\ufeff"; 
-        csv += "RELATORIO EXECUTIVO - NEXUS UI\n";
-        csv += `Data:;${new Date().toLocaleString()}\n\n`;
-        csv += "INDICADORES;\n";
-        csv += `Faturacao:;${dadosGlobais.kpi_financeiro.faturamento}\n`;
-        csv += `Seguranca:;${dadosGlobais.seguranca_score}/100\n\n`;
-        csv += "LOGS DE AUDITORIA;\n";
-        csv += "Hora;Utilizador;Acao\n";
+        let csv = "\ufeffRELATORIO EXECUTIVO - NEXUS UI\n";
+        csv += `Data:;${new Date().toLocaleString()}\n\nINDICADORES;\n`;
+        csv += `Faturacao:;${dadosGlobais.kpi_financeiro.faturamento}\nSeguranca:;${dadosGlobais.seguranca_score}/100\n\nLOGS DE AUDITORIA;\nHora;Utilizador;Acao\n`;
         
-        dadosGlobais.logs.forEach(l => {
-            csv += `${l.data};${l.usuario};${l.acao}\n`;
-        });
+        dadosGlobais.logs.forEach(l => { csv += `${l.data};${l.usuario};${l.acao}\n`; });
 
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
