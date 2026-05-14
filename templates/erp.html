@@ -121,25 +121,30 @@
 
     function exportarPDF() {
     const elemento = document.getElementById('conteudo-dashboard');
-    const botoes = document.querySelector('.d-flex.gap-2'); 
+    
 
-    botoes.style.visibility = 'hidden';
+    const larguraOriginal = elemento.style.width;
+    const maxLarguraOriginal = elemento.style.maxWidth;
+
+    elemento.style.width = '1200px';
+    elemento.style.maxWidth = '1200px';
 
     const opt = {
-        margin: [10, 5, 10, 5], 
+        margin: [10, 10, 10, 10], 
         filename: 'Relatorio_Nexus_UI.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
+        image: { type: 'jpeg', quality: 1.0 },
         html2canvas: { 
             scale: 2, 
             backgroundColor: '#0f172a', 
             useCORS: true,
-            letterRendering: true
+            windowWidth: 1200 
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
     };
 
     html2pdf().set(opt).from(elemento).save().then(() => {
-        botoes.style.visibility = 'visible';
+        elemento.style.width = larguraOriginal;
+        elemento.style.maxWidth = maxLarguraOriginal;
     });
 }
 
