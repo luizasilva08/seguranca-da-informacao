@@ -25,25 +25,28 @@
         .table-custom th { color: #ffffff; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; border-bottom: 1px solid #475569; }
         .table-custom td { border-bottom: 1px solid #334155; color: #e2e8f0; vertical-align: middle; }
 
-  
         .pdf-export-mode {
-            width: 1100px !important;
-            max-width: 1100px !important;
-            margin: 0 auto !important;
-            overflow: visible !important;
-            background-color: #0f172a !important; 
+            width: 1150px !important;
+            min-width: 1150px !important;
+            max-width: 1150px !important;
+            padding: 10px !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
+            background-color: #0f172a !important;
         }
         .pdf-export-mode .row {
             display: flex !important;
             flex-wrap: nowrap !important; 
             width: 100% !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
         }
         .pdf-export-mode .col-md-4 {
             flex: 0 0 33.333% !important; 
             width: 33.333% !important;
             max-width: 33.333% !important;
-            padding-right: 15px;
-            padding-left: 15px;
+            padding-right: 15px !important;
+            padding-left: 15px !important;
         }
     </style>
 </head>
@@ -114,7 +117,7 @@
 </div>
 
 <script>
-    let dadosGlobais = {};
+    let dadosGlobais = {}; 
 
     const ctx = document.getElementById('chartSeguranca').getContext('2d');
     const chartRisco = new Chart(ctx, {
@@ -126,7 +129,7 @@
     setInterval(async () => {
         const res = await fetch('/api/erp');
         const data = await res.json();
-        dadosGlobais = data; 
+        dadosGlobais = data;
         
         document.getElementById('fat').innerText = data.kpi_financeiro.faturamento;
         document.getElementById('custo').innerText = data.kpi_financeiro.custo_energia;
@@ -147,7 +150,7 @@
         document.getElementById('falhas').innerText = data.falhas_login;
 
         document.getElementById('tabela-logs').innerHTML = data.logs.map(l => {
-            let horaFormatada = l.data; // Mantém a hora original por padrão
+            let horaFormatada = l.data; 
             
             try {
                 if (l.data && l.data.includes(':')) {
@@ -181,11 +184,15 @@
         }, 1200);
     }
 
+
+
     function exportarPDF() {
         const elemento = document.getElementById('conteudo-dashboard');
         const botoes = document.querySelector('.d-flex.gap-2'); 
 
+
         if(botoes) botoes.style.visibility = 'hidden';
+
 
         elemento.classList.add('pdf-export-mode');
 
@@ -197,8 +204,8 @@
                 scale: 2, 
                 backgroundColor: '#0f172a',
                 useCORS: true,
-                scrollX: 0,
-                scrollY: 0
+                width: 1150,        
+                windowWidth: 1150   
             },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
         };
@@ -215,7 +222,7 @@
             return;
         }
         
-        let csv = "\ufeff"; // BOM para o Excel ler acentos
+        let csv = "\ufeff"; 
         csv += "RELATORIO EXECUTIVO - NEXUS UI\n";
         csv += `Data:;${new Date().toLocaleString()}\n\n`;
         csv += "INDICADORES;\n";
