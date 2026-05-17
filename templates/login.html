@@ -18,7 +18,7 @@
 
 <div class="container d-flex justify-content-center align-items-center h-100">
     <div class="login-card col-md-4 col-sm-8 col-12">
-        <h3 class="text-center mb-4 fw-bold text-primary">NEXUS HMI</h3>
+        <h3 class="text-center mb-4 fw-bold text-primary">Nexus UI</h3>
         
         <div class="form-group mb-3">
             <label class="text-secondary small mb-1">Utilizador</label>
@@ -40,7 +40,6 @@
         const btn = document.getElementById('btn-login');
         const msgErro = document.getElementById('msg-erro');
         
-        // Limpa mensagens antigas
         msgErro.innerText = ""; 
         
         try {
@@ -56,10 +55,8 @@
             const data = await res.json();
             
             if(res.ok) {
-                // Sucesso: redireciona
                 window.location.href = data.redirect; 
             } else {
-                // Verifica se o backend devolveu a flag de bloqueio
                 if (data.bloqueado) {
                     iniciarContagemBloqueio(60, btn, msgErro);
                 } else {
@@ -71,12 +68,10 @@
         }
     }
 
-    // Função que gere a contagem decrescente visualmente
     function iniciarContagemBloqueio(segundos, btn, msgElement) {
-        btn.disabled = true; // Desativa o botão para evitar mais erros
+        btn.disabled = true; 
         let tempoRestante = segundos;
 
-        // Atualiza a tela imediatamente
         const atualizarTela = () => {
             msgElement.innerHTML = `Múltiplas tentativas falhas.<br>Aguarde <span class="text-warning">${tempoRestante}s</span> para tentar novamente.`;
             btn.innerText = `Bloqueado (${tempoRestante}s)`;
@@ -84,14 +79,12 @@
         
         atualizarTela();
 
-        // Cria o intervalo de 1 em 1 segundo
         const intervalo = setInterval(() => {
             tempoRestante--;
             
             if (tempoRestante > 0) {
                 atualizarTela();
             } else {
-                // Quando chega a 0, limpa tudo e reativa o botão
                 clearInterval(intervalo);
                 btn.disabled = false;
                 btn.innerText = "Iniciar Sessão";
