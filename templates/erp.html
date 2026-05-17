@@ -194,8 +194,15 @@
     function exportarPDF() {
         const elemento = document.getElementById('conteudo-dashboard');
         const botoes = document.querySelector('.d-flex.gap-2'); 
+        const linhas = elemento.querySelectorAll('.row');
 
         if(botoes) botoes.style.visibility = 'hidden';
+        
+        elemento.style.padding = '20px';
+        linhas.forEach(linha => {
+            linha.style.marginLeft = '0';
+            linha.style.marginRight = '0';
+        });
 
         const opt = {
             margin: [10, 10, 10, 10], 
@@ -204,19 +211,21 @@
             html2canvas: { 
                 scale: 2, 
                 backgroundColor: '#0f172a',
-                useCORS: true,
-                windowWidth: 1366, 
-                scrollX: 0,
-                scrollY: 0
+                windowWidth: 1200 
             },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
         };
 
         html2pdf().set(opt).from(elemento).save().then(() => {
             if(botoes) botoes.style.visibility = 'visible';
+            elemento.style.padding = '';
+            linhas.forEach(linha => {
+                linha.style.marginLeft = '';
+                linha.style.marginRight = '';
+            });
         });
     }
-
+    
     function exportarCSV() {
         if (!dadosGlobais.logs) return alert("Aguarde o carregamento dos dados antes de exportar.");
         let csv = "\ufeffRELATORIO EXECUTIVO - NEXUS UI\n";
