@@ -111,14 +111,18 @@ def login():
     username = data.get('username')
     ip_address = request.remote_addr or "127.0.0.1"
     
-    # PROTEÇÃO REDUZIDA (TESTES): 3 erros num minuto geram bloqueio
+    # Verifica tentativas no último minuto
     limite_tempo = datetime.now() - timedelta(minutes=1)
     tentativas = FailedLogin.query.filter(
         FailedLogin.ip_address == ip_address, 
         FailedLogin.attempt_time >= limite_tempo
     ).count()
     
+    # CORREÇÃO: Mesmo bloqueado, regista a tentativa no banco de dados para auditoria!
     if tentativas >= 3:
+        novo_erro = FailedLogin(username=username, ip_address=ip_address, attempt_time=datetime.now())
+        db.session.add(novo_erro)
+        db.session.commit()
         return jsonify({"erro": "Múltiplas tentativas falhas. IP bloqueado por 1 minuto.", "bloqueado": True}), 403
 
     user = User.query.filter_by(username=username).first()
@@ -128,14 +132,13 @@ def login():
         session['role'] = user.role
         registrar_log(f"Login efetuado com sucesso ({user.role})")
         
-        # OBRIGATÓRIO: Limpa as falhas se acertou a password
-        FailedLogin.query.filter_by(ip_address=ip_address).delete()
-        db.session.commit()
+        # CORREÇÃO: Removi a linha que apagava os erros. 
+        # Num sistema real, nunca apagamos logs de segurança! O bloqueio sai sozinho pelo tempo.
         
         destinos = {'Operador': '/scada', 'Supervisor': '/mes', 'Engenharia': '/erp'}
         return jsonify({"mensagem": "Sucesso", "redirect": destinos.get(user.role, '/')})
     
-    # Regista o erro se falhar
+    # Regista o erro se falhar a password
     novo_erro = FailedLogin(username=username, ip_address=ip_address, attempt_time=datetime.now())
     db.session.add(novo_erro)
     db.session.commit()
@@ -234,6 +237,7 @@ def dados_erp():
     
     score = 100
     if state.saude_maquina < 40: score -= 20
+    # Calcula falhas baseadas nos registos da última hora no banco de dados
     falhas_login = FailedLogin.query.filter(FailedLogin.attempt_time >= (datetime.now() - timedelta(minutes=60))).count()
     score -= (falhas_login * 5)
     score = max(0, score)
@@ -279,6 +283,14 @@ def reset_manutencao():
     registrar_log("Manutenção Preventiva Registada")
     db.session.commit()
     return jsonify({"status": "ok"})
+
+# ROTA BÔNUS: Para limpar os ataques do banco!
+@app.route('/api/reset_seguranca', methods=['GET'])
+def reset_seguranca():
+    FailedLogin.query.delete()
+    db.session.commit()
+    registrar_log("Logs de segurança foram zerados (Reset)")
+    return jsonify({"mensagem": "Tabela failed_logins limpa! O Score voltará a 100."})
 
 with app.app_context(): 
     db.create_all()
