@@ -24,6 +24,34 @@
         .table-custom { color: #f8f9fa; font-size: 0.85rem; margin: 0; }
         .table-custom th { color: #ffffff; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; border-bottom: 1px solid #475569; }
         .table-custom td { border-bottom: 1px solid #334155; color: #e2e8f0; vertical-align: middle; }
+
+        @media print {
+            body { 
+                background-color: var(--bg-dark) !important; 
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact;
+            }
+            .row {
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+            }
+            #conteudo-dashboard {
+                padding: 15px !important;
+                width: 100% !important;
+            }
+            .panel {
+                break-inside: avoid;
+            }
+            .col-md-4 {
+                width: 33.333333% !important;
+                float: left !important;
+                padding-left: 8px !important;
+                padding-right: 8px !important;
+            }
+            .topbar {
+                display: none !important; 
+            }
+        }
     </style>
 </head>
 <body>
@@ -107,7 +135,7 @@
     setInterval(async () => {
         const res = await fetch('/api/erp');
         const data = await res.json();
-        dadosGlobais = data; // Atualiza para os botões exportarem
+        dadosGlobais = data; 
         
         document.getElementById('fat').innerText = data.kpi_financeiro.faturamento;
         document.getElementById('custo').innerText = data.kpi_financeiro.custo_energia;
@@ -116,15 +144,16 @@
         document.getElementById('lote-atual').innerText = data.lote_atual;
         document.getElementById('data-lote').innerText = data.data_lote;
 
+        // --- LÓGICA DE CORES DO SCORE ---
         const score = data.seguranca_score;
         chartRisco.data.datasets[0].data = [score, 100 - score];
         
         if (score === 100) {
-            chartRisco.data.datasets[0].backgroundColor[0] = '#10b981'; 
+            chartRisco.data.datasets[0].backgroundColor[0] = '#10b981'; // 100% Saudável (Verde)
         } else if (score >= 50) {
-            chartRisco.data.datasets[0].backgroundColor[0] = '#f59e0b'; 
+            chartRisco.data.datasets[0].backgroundColor[0] = '#f59e0b'; // Sofreu ataque ou manutenção (Laranja)
         } else {
-            chartRisco.data.datasets[0].backgroundColor[0] = '#ef4444';// Crítico (Vermelho)
+            chartRisco.data.datasets[0].backgroundColor[0] = '#ef4444'; // Crítico (Vermelho)
         }
         
         chartRisco.update();
@@ -133,7 +162,7 @@
         document.getElementById('status-seg').style.color = chartRisco.data.datasets[0].backgroundColor[0];
         document.getElementById('falhas').innerText = data.falhas_login;
 
-      document.getElementById('tabela-logs').innerHTML = data.logs.map(l => {
+        document.getElementById('tabela-logs').innerHTML = data.logs.map(l => {
             let horaFormatada = l.data; 
             try {
                 if (l.data && l.data.includes(':')) {
@@ -176,7 +205,9 @@
                 scale: 2, 
                 backgroundColor: '#0f172a',
                 useCORS: true,
-                windowWidth: 1366 
+                windowWidth: 1366, 
+                scrollX: 0,
+                scrollY: 0
             },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
         };
