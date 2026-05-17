@@ -9,28 +9,39 @@
         .login-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid #334155; border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); padding: 2.5rem; }
         .form-control { background-color: #0f172a; border: 1px solid #475569; color: white; }
         .form-control:focus { background-color: #0f172a; border-color: #38bdf8; box-shadow: 0 0 0 0.25rem rgba(56, 189, 248, 0.25); color: white; }
-        .btn-primary { background-color: #0284c7; border: none; } .btn-primary:hover { background-color: #0369a1; }
+        .btn-primary { background-color: #0284c7; border: none; transition: all 0.3s ease; }
+        .btn-primary:hover { background-color: #0369a1; }
+        .btn-primary:disabled { background-color: #334155; color: #94a3b8; cursor: not-allowed; }
     </style>
 </head>
 <body>
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-4 login-card">
-            <h3 class="text-center mb-1" style="color: #38bdf8; font-weight: 700;">Nexus UI</h3>
-            <p class="text-center text-muted mb-4">Autenticação de Sistema</p>
-            <label class="form-label text-secondary">Usuário de Rede</label>
-            <input type="text" id="user" class="form-control mb-3" placeholder="Ex: operador1">
-            <label class="form-label text-secondary">Senha de Acesso</label>
+
+<div class="container d-flex justify-content-center align-items-center h-100">
+    <div class="login-card col-md-4 col-sm-8 col-12">
+        <h3 class="text-center mb-4 fw-bold text-primary">NEXUS HMI</h3>
+        
+        <div class="form-group mb-3">
+            <label class="text-secondary small mb-1">Utilizador</label>
+            <input type="text" id="user" class="form-control" placeholder="ID Operador">
+        </div>
+        
+        <div class="form-group mb-4">
+            <label class="text-secondary small mb-1">Senha Segura</label>
             <input type="password" id="pass" class="form-control mb-4" placeholder="••••••••">
-            <button class="btn btn-primary w-100 py-2 fw-bold" onclick="fazerLogin()">Iniciar Sessão</button>
+            
+            <button id="btn-login" class="btn btn-primary w-100 py-2 fw-bold" onclick="fazerLogin()">Iniciar Sessão</button>
             <p id="msg-erro" class="text-danger mt-3 text-center fw-bold"></p>
         </div>
     </div>
 </div>
+
 <script>
     async function fazerLogin() {
-        // Limpa mensagens de erro antigas ao tentar novamente
-        document.getElementById('msg-erro').innerText = ""; 
+        const btn = document.getElementById('btn-login');
+        const msgErro = document.getElementById('msg-erro');
+        
+        // Limpa mensagens antigas
+        msgErro.innerText = ""; 
         
         try {
             const res = await fetch('/login', {
@@ -45,16 +56,48 @@
             const data = await res.json();
             
             if(res.ok) {
-                // Se tudo correu bem, redireciona para a página correta
+                // Sucesso: redireciona
                 window.location.href = data.redirect; 
             } else {
-                // AGORA LÊ A MENSAGEM DO BACKEND: "data.erro"
-                // Se por acaso o backend não mandar mensagem, usa "Acesso Negado." como padrão
-                document.getElementById('msg-erro').innerText = data.erro || "Acesso Negado.";
+                // Verifica se o backend devolveu a flag de bloqueio
+                if (data.bloqueado) {
+                    iniciarContagemBloqueio(60, btn, msgErro);
+                } else {
+                    msgErro.innerText = data.erro || "Acesso Negado.";
+                }
             }
         } catch(e) {
-            document.getElementById('msg-erro').innerText = "Erro ao conectar com o servidor.";
+            msgErro.innerText = "Erro ao conectar com o servidor.";
         }
+    }
+
+    // Função que gere a contagem decrescente visualmente
+    function iniciarContagemBloqueio(segundos, btn, msgElement) {
+        btn.disabled = true; // Desativa o botão para evitar mais erros
+        let tempoRestante = segundos;
+
+        // Atualiza a tela imediatamente
+        const atualizarTela = () => {
+            msgElement.innerHTML = `Múltiplas tentativas falhas.<br>Aguarde <span class="text-warning">${tempoRestante}s</span> para tentar novamente.`;
+            btn.innerText = `Bloqueado (${tempoRestante}s)`;
+        };
+        
+        atualizarTela();
+
+        // Cria o intervalo de 1 em 1 segundo
+        const intervalo = setInterval(() => {
+            tempoRestante--;
+            
+            if (tempoRestante > 0) {
+                atualizarTela();
+            } else {
+                // Quando chega a 0, limpa tudo e reativa o botão
+                clearInterval(intervalo);
+                btn.disabled = false;
+                btn.innerText = "Iniciar Sessão";
+                msgElement.innerText = "";
+            }
+        }, 1000); // 1000 ms = 1 segundo
     }
 </script>
 </body>
