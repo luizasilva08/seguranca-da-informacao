@@ -198,27 +198,31 @@
 
         if(botoes) botoes.style.visibility = 'hidden';
         
-        elemento.style.padding = '20px';
+        elemento.style.backgroundColor = '#0f172a';
+        elemento.style.padding = '30px'; 
+        elemento.style.width = '100%';
+
         linhas.forEach(linha => {
             linha.style.marginLeft = '0';
             linha.style.marginRight = '0';
         });
 
         const opt = {
-            margin: [10, 10, 10, 10], 
+            margin: 0, 
             filename: 'Relatorio_Nexus_UI.pdf',
             image: { type: 'jpeg', quality: 1.0 },
             html2canvas: { 
                 scale: 2, 
-                backgroundColor: '#0f172a',
-                windowWidth: 1200 
+                backgroundColor: '#0f172a'
             },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
         };
 
         html2pdf().set(opt).from(elemento).save().then(() => {
             if(botoes) botoes.style.visibility = 'visible';
+            elemento.style.backgroundColor = '';
             elemento.style.padding = '';
+            elemento.style.width = '';
             linhas.forEach(linha => {
                 linha.style.marginLeft = '';
                 linha.style.marginRight = '';
